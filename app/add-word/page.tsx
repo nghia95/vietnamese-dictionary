@@ -5,23 +5,56 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import styles from './addWord.module.css';
 
+interface DefinitionInput {
+    definition: string;
+    source: string;
+}
+
 export default function AddWordPage() {
     const [word, setWord] = useState('');
     const [phonetic, setPhonetic] = useState('');
-    const [definition, setDefinition] = useState('');
+    const [definitions, setDefinitions] = useState<DefinitionInput[]>([
+        { definition: '', source: '' }
+    ]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { data: session } = useSession();
 
+    const handleAddDefinition = () => {
+        setDefinitions([...definitions, { definition: '', source: '' }]);
+    };
+
+    const handleRemoveDefinition = (index: number) => {
+        if (definitions.length > 1) {
+            setDefinitions(definitions.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleDefinitionChange = (index: number, field: 'definition' | 'source', value: string) => {
+        const newDefinitions = [...definitions];
+        newDefinitions[index][field] = value;
+        setDefinitions(newDefinitions);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess(false);
 
-        if (!word || !definition) {
-            setError('Vui lòng điền đầy đủ từ và nghĩa');
+        if (!word) {
+            setError('Vui lòng nhập từ vựng');
+            return;
+        }
+
+        // Validate definitions
+        const validDefinitions = definitions.filter(
+            d => d.definition.trim() !== '' && d.source.trim() !== ''
+        );
+
+        if (validDefinitions.length === 0) {
+            setError('Vui lòng nhập ít nhất một nghĩa và nguồn');
             return;
         }
 
@@ -31,7 +64,11 @@ export default function AddWordPage() {
             const response = await fetch('/api/words', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ word, definition, phonetic }),
+                body: JSON.stringify({
+                    word,
+                    phonetic: phonetic || null,
+                    definitions: validDefinitions
+                }),
             });
 
             const data = await response.json();
@@ -42,7 +79,7 @@ export default function AddWordPage() {
                 setSuccess(true);
                 setWord('');
                 setPhonetic('');
-                setDefinition('');
+                setDefinitions([{ definition: '', source: '' }]);
 
                 // Redirect to home after success
                 setTimeout(() => {
@@ -99,16 +136,61 @@ export default function AddWordPage() {
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="definition">Nghĩa <span style={{ color: 'var(--accent-pink)' }}>*</span></label>
-                            <textarea
-                                id="definition"
-                                value={definition}
-                                onChange={(e) => setDefinition(e.target.value)}
-                                required
-                                placeholder="Nhập nghĩa của từ..."
-                                rows={5}
-                            />
+                        <div className={styles.definitionsSection}>
+                            <div className={styles.definitionsSectionHeader}>
+                                <label>Nghĩa <span style={{ color: 'var(--accent-pink)' }}>*</span></label>
+                                <p className={styles.helperText}>Thêm nhiều nghĩa từ các nguồn khác nhau</p>
+                            </div>
+
+                            <div className={styles.definitionsList}>
+                                {definitions.map((def, index) => (
+                                    <div key={index} className={styles.definitionEntry}>
+                                        <div className={styles.definitionHeader}>
+                                            <span className={styles.definitionNumber}>Nghĩa #{index + 1}</span>
+                                            {definitions.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className={styles.removeButton}
+                                                    onClick={() => handleRemoveDefinition(index)}
+                                                    title="Xóa nghĩa này"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor={`definition-${index}`}>Nghĩa</label>
+                                            <textarea
+                                                id={`definition-${index}`}
+                                                value={def.definition}
+                                                onChange={(e) => handleDefinitionChange(index, 'definition', e.target.value)}
+                                                placeholder="Nhập nghĩa của từ..."
+                                                rows={3}
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor={`source-${index}`}>Nguồn</label>
+                                            <input
+                                                id={`source-${index}`}
+                                                type="text"
+                                                value={def.source}
+                                                onChange={(e) => handleDefinitionChange(index, 'source', e.target.value)}
+                                                placeholder="Ví dụ: Từ điển Việt-Anh, Wikipedia, Community"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                type="button"
+                                className={styles.addDefinitionButton}
+                                onClick={handleAddDefinition}
+                            >
+                                ➕ Thêm nghĩa khác
+                            </button>
                         </div>
 
                         <div className={styles.formActions}>

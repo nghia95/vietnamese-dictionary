@@ -1,11 +1,20 @@
+export interface Definition {
+  id: number;
+  word_id: number;
+  definition: string;
+  source: string;
+  order: number;
+  created_at: string;
+}
+
 export interface Word {
   id: number;
   word: string;
-  definition: string;
   phonetic: string | null;
   user_id: number | null;
   user_name: string | null;
   created_at: string;
+  definitions: Definition[];
 }
 
 export interface User {
@@ -17,6 +26,9 @@ export interface User {
 
 export interface WordInput {
   word: string;
-  definition: string;
   phonetic?: string;
+  definitions: {
+    definition: string;
+    source: string;
+  }[];
 }

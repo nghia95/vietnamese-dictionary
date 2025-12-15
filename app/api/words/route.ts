@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { searchWords, addWord } from '@/lib/db';
+import { searchWords, addWordWithDefinitions } from '@/lib/db';
 import { auth } from '@/auth';
 
 export async function GET(request: NextRequest) {
@@ -32,19 +32,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { word, definition, phonetic } = await request.json();
+        const { word, phonetic, definitions } = await request.json();
 
         // Validate input
-        if (!word || !definition) {
+        if (!word || !definitions || !Array.isArray(definitions) || definitions.length === 0) {
             return NextResponse.json(
-                { error: 'Word and definition are required' },
+                { error: 'Word and at least one definition are required' },
                 { status: 400 }
             );
         }
 
-        // Add word to database
+        // Validate each definition has both definition and source
+        for (const def of definitions) {
+            if (!def.definition || !def.source) {
+                return NextResponse.json(
+                    { error: 'Each definition must have both definition text and source' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Add word with definitions to database
         const userId = parseInt(session.user.id as string);
-        addWord(word, definition, phonetic || null, userId);
+        addWordWithDefinitions(word, phonetic || null, definitions, userId);
 
         return NextResponse.json(
             { message: 'Word added successfully' },

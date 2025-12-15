@@ -23,11 +23,36 @@
     font-size: 1rem;
 }
 
-.definition {
+.definitionsList {
+    margin-bottom: 1.5rem;
+}
+
+.definitionItem {
+    margin-bottom: 1rem;
+}
+
+.definitionItem:last-child {
+    margin-bottom: 0;
+}
+
+.definitionText {
     font-size: 1.125rem;
     color: var(--text-primary);
     line-height: 1.7;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.definitionNumber {
+    font-weight: 700;
+    color: var(--primary-violet-light);
+    margin-right: 0.5rem;
+}
+
+.definitionSource {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-left: 1.5rem;
 }
 
 .wordMeta {

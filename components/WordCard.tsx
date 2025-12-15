@@ -21,7 +21,19 @@ export default function WordCard({ word }: WordCardProps) {
                 )}
             </div>
 
-            <p className={styles.definition}>{word.definition}</p>
+            <div className={styles.definitionsList}>
+                {word.definitions.map((def, index) => (
+                    <div key={def.id} className={styles.definitionItem}>
+                        <div className={styles.definitionText}>
+                            <span className={styles.definitionNumber}>{index + 1}.</span>
+                            {def.definition}
+                        </div>
+                        <div className={styles.definitionSource}>
+                            Nguồn: {def.source}
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             <div className={styles.wordMeta}>
                 {word.user_name && (
