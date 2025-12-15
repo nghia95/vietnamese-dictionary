@@ -1,0 +1,59 @@
+.authPage {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
+}
+
+.authCard {
+    max-width: 480px;
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.authTitle {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-violet-light) 0%, var(--secondary-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.authSubtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+.authForm {
+    margin-bottom: 1.5rem;
+}
+
+.authFooter {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.authFooter a {
+    color: var(--primary-violet-light);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .authCard {
+        padding: 2rem;
+    }
+
+    .authTitle {
+        font-size: 1.75rem;
+    }
+}

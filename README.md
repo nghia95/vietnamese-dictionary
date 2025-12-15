@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Từ Điển Việt - Vietnamese Dictionary
+
+A modern, full-stack Vietnamese dictionary web application built with Next.js 14, TypeScript, and SQLite.
+
+## Features
+
+✨ **Public Word Lookup** - Anyone can search and browse Vietnamese words  
+🔐 **User Authentication** - Sign up and login with email/password  
+📝 **Word Contribution** - Authenticated users can add new words with definitions  
+🎨 **Modern UI** - Premium design with Vietnamese typography and smooth animations  
+📱 **Responsive** - Works seamlessly on desktop, tablet, and mobile devices
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Database**: SQLite with better-sqlite3
+- **Authentication**: NextAuth.js v5
+- **Styling**: Vanilla CSS with modern design system
+- **Fonts**: Lexend (optimized for Vietnamese)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+ and npm
+
+### Installation
+
+1. Clone or navigate to this directory
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+The database will be automatically created and seeded with sample Vietnamese words on first run.
+
+## Usage
+
+### Search for Words
+- Visit the home page
+- Type in the search box to find Vietnamese words
+- Results update in real-time as you type
+
+### Create an Account
+1. Click "Đăng ký" (Sign up) in the header
+2. Fill in your name, email, and password
+3. Submit the form to create your account
+
+### Login
+1. Click "Đăng nhập" (Login) in the header
+2. Enter your email and password
+3. Click login to access authenticated features
+
+### Add New Words
+1. Login to your account
+2. Click "Thêm từ mới" (Add new word) in the header
+3. Fill in the word, optional phonetic pronunciation, and definition
+4. Submit to add the word to the dictionary
+
+## Project Structure
+
+```
+├── app/                    # Next.js app router pages
+│   ├── api/               # API routes
+│   │   ├── auth/         # Authentication endpoints
+│   │   └── words/        # Word CRUD endpoints
+│   ├── add-word/         # Add word page (protected)
+│   ├── login/            # Login page
+│   ├── signup/           # Signup page
+│   └── page.tsx          # Home page with search
+├── components/            # React components
+│   ├── Header.tsx        # Navigation header
+│   └── WordCard.tsx      # Word display card
+├── lib/                   # Utilities and database
+│   └── db.ts             # SQLite database setup
+├── types/                 # TypeScript type definitions
+├── auth.ts               # NextAuth configuration
+└── middleware.ts         # Route protection middleware
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database Schema
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Users Table
+- `id` - Primary key
+- `email` - Unique email address
+- `password_hash` - Hashed password
+- `name` - User's display name
+- `created_at` - Registration timestamp
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Words Table
+- `id` - Primary key
+- `word` - The Vietnamese word
+- `definition` - Word definition/meaning
+- `phonetic` - Optional phonetic pronunciation
+- `user_id` - Foreign key to users (contributor)
+- `created_at` - Addition timestamp
 
-## Learn More
+## Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Run development server
+npm run dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Build for production
+npm run build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Start production server
+npm start
+```
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

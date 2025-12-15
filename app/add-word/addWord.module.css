@@ -1,0 +1,89 @@
+.addWordPage {
+    min-height: calc(100vh - 80px);
+    padding: 3rem 0;
+    background: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+}
+
+.addWordContainer {
+    max-width: 700px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.addWordHeader {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.addWordHeader h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.addWordHeader p {
+    color: var(--text-muted);
+    font-size: 1.125rem;
+}
+
+.addWordForm {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(20px);
+    margin-bottom: 1.5rem;
+}
+
+.formActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.contributorInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+}
+
+.contributorInfo span {
+    font-size: 1.5rem;
+}
+
+.contributorInfo p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.contributorInfo strong {
+    color: var(--accent-green);
+}
+
+@media (max-width: 768px) {
+    .addWordPage {
+        padding: 2rem 0;
+    }
+
+    .addWordHeader h1 {
+        font-size: 2rem;
+    }
+
+    .addWordForm {
+        padding: 1.5rem;
+    }
+
+    .formActions {
+        flex-direction: column-reverse;
+    }
+
+    .formActions button {
+        width: 100%;
+    }
+}
