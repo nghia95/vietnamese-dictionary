@@ -6,7 +6,11 @@ A modern, full-stack Vietnamese dictionary web application built with Next.js 14
 
 ✨ **Public Word Lookup** - Anyone can search and browse Vietnamese words  
 🔐 **User Authentication** - Sign up and login with email/password  
-📝 **Word Contribution** - Authenticated users can add new words with definitions  
+📝 **Word Contribution** - Authenticated users can add new words with:
+  - Multiple definitions with sources
+  - Etymologies (Nguồn gốc)
+  - Synonyms and Antonyms
+✏️ **Edit Words** - Contributors can edit their own words
 🎨 **Modern UI** - Premium design with Vietnamese typography and smooth animations  
 📱 **Responsive** - Works seamlessly on desktop, tablet, and mobile devices
 
@@ -40,7 +44,7 @@ A modern, full-stack Vietnamese dictionary web application built with Next.js 14
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-The database will be automatically created and seeded with sample Vietnamese words on first run.
+The database (`dictionary.db`) will be automatically created and seeded with sample Vietnamese words on first run.
 
 ## Usage
 
@@ -62,8 +66,17 @@ The database will be automatically created and seeded with sample Vietnamese wor
 ### Add New Words
 1. Login to your account
 2. Click "Thêm từ mới" (Add new word) in the header
-3. Fill in the word, optional phonetic pronunciation, and definition
-4. Submit to add the word to the dictionary
+3. Fill in the word and phonetic (optional)
+4. Add one or more **definitions** with sources
+5. Add **etymologies** (optional)
+6. Add **synonyms** and **antonyms** (optional)
+7. Submit to add the word to the dictionary
+
+### Edit Words
+1. Login to your account
+2. Navigate to a word you created (search for it)
+3. Click the **Edit** (✏️) button next to the word title
+4. Update the information and save
 
 ## Project Structure
 
@@ -73,12 +86,14 @@ The database will be automatically created and seeded with sample Vietnamese wor
 │   │   ├── auth/         # Authentication endpoints
 │   │   └── words/        # Word CRUD endpoints
 │   ├── add-word/         # Add word page (protected)
+│   ├── edit-word/        # Edit word page (protected)
 │   ├── login/            # Login page
 │   ├── signup/           # Signup page
 │   └── page.tsx          # Home page with search
 ├── components/            # React components
 │   ├── Header.tsx        # Navigation header
-│   └── WordCard.tsx      # Word display card
+│   ├── WordCard.tsx      # Word display card
+│   └── WordForm.tsx      # Reusable form for Add/Edit
 ├── lib/                   # Utilities and database
 │   └── db.ts             # SQLite database setup
 ├── types/                 # TypeScript type definitions
@@ -98,10 +113,18 @@ The database will be automatically created and seeded with sample Vietnamese wor
 ### Words Table
 - `id` - Primary key
 - `word` - The Vietnamese word
-- `definition` - Word definition/meaning
 - `phonetic` - Optional phonetic pronunciation
 - `user_id` - Foreign key to users (contributor)
 - `created_at` - Addition timestamp
+
+### Definitions Table
+- `id`, `word_id`, `definition`, `source`, `order`
+
+### Etymologies Table
+- `id`, `word_id`, `etymology`
+
+### Related Words Table
+- `id`, `word_id`, `word`, `type` ('synonym' or 'antonym')
 
 ## Development
 

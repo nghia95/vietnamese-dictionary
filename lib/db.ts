@@ -105,6 +105,29 @@ export function initializeDatabase() {
     `);
   }
 
+  // Create etymologies table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS etymologies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER NOT NULL,
+      etymology TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create related_words table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS related_words (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER NOT NULL,
+      word TEXT NOT NULL,
+      type TEXT NOT NULL, -- 'synonym' or 'antonym'
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create index for faster word searches
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_words_word ON words(word COLLATE NOCASE)
@@ -113,6 +136,16 @@ export function initializeDatabase() {
   // Create index for definitions
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_definitions_word_id ON definitions(word_id)
+  `);
+
+  // Create index for etymologies
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_etymologies_word_id ON etymologies(word_id)
+  `);
+
+  // Create index for related_words
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_related_words_word_id ON related_words(word_id)
   `);
 
   // Seed initial data if tables are empty
@@ -208,9 +241,20 @@ export function searchWords(query: string): Word[] {
     ORDER BY "order"
   `);
 
+  const etymologyStmt = db.prepare(`
+    SELECT etymology FROM etymologies WHERE word_id = ?
+  `);
+
+  const relatedWordStmt = db.prepare(`
+    SELECT word FROM related_words WHERE word_id = ? AND type = ?
+  `);
+
   return words.map(word => ({
     ...word,
-    definitions: defStmt.all(word.id) as Definition[]
+    definitions: defStmt.all(word.id) as Definition[],
+    etymologies: (etymologyStmt.all(word.id) as { etymology: string }[]).map(e => e.etymology),
+    synonyms: (relatedWordStmt.all(word.id, 'synonym') as { word: string }[]).map(r => r.word),
+    antonyms: (relatedWordStmt.all(word.id, 'antonym') as { word: string }[]).map(r => r.word),
   }));
 }
 
@@ -218,10 +262,15 @@ export function addWordWithDefinitions(
   word: string,
   phonetic: string | null,
   definitions: { definition: string; source: string }[],
+  etymologies: string[],
+  synonyms: string[],
+  antonyms: string[],
   userId: number | null
 ) {
   const insertWord = db.prepare('INSERT INTO words (word, phonetic, user_id) VALUES (?, ?, ?)');
   const insertDefinition = db.prepare('INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)');
+  const insertEtymology = db.prepare('INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)');
+  const insertRelatedWord = db.prepare('INSERT INTO related_words (word_id, word, type) VALUES (?, ?, ?)');
 
   const transaction = db.transaction(() => {
     const result = insertWord.run(word, phonetic, userId);
@@ -231,10 +280,111 @@ export function addWordWithDefinitions(
       insertDefinition.run(wordId, def.definition, def.source, index);
     });
 
+    etymologies.forEach(etymology => {
+      insertEtymology.run(wordId, etymology);
+    });
+
+    synonyms.forEach(synonym => {
+      insertRelatedWord.run(wordId, synonym, 'synonym');
+    });
+
+    antonyms.forEach(antonym => {
+      insertRelatedWord.run(wordId, antonym, 'antonym');
+    });
+
     return wordId;
   });
 
   return transaction();
+}
+
+export function getWordById(id: number): Word | undefined {
+  const stmt = db.prepare(`
+    SELECT 
+      w.id,
+      w.word,
+      w.phonetic,
+      w.user_id,
+      u.name as user_name,
+      w.created_at
+    FROM words w
+    LEFT JOIN users u ON w.user_id = u.id
+    WHERE w.id = ?
+  `);
+
+  const word = stmt.get(id) as Word | undefined;
+  if (!word) return undefined;
+
+  const defStmt = db.prepare(`
+    SELECT id, word_id, definition, source, "order", created_at
+    FROM definitions
+    WHERE word_id = ?
+    ORDER BY "order"
+  `);
+
+  const etymologyStmt = db.prepare(`
+    SELECT etymology FROM etymologies WHERE word_id = ?
+  `);
+
+  const relatedWordStmt = db.prepare(`
+    SELECT word FROM related_words WHERE word_id = ? AND type = ?
+  `);
+
+  return {
+    ...word,
+    definitions: defStmt.all(word.id) as Definition[],
+    etymologies: (etymologyStmt.all(word.id) as { etymology: string }[]).map(e => e.etymology),
+    synonyms: (relatedWordStmt.all(word.id, 'synonym') as { word: string }[]).map(r => r.word),
+    antonyms: (relatedWordStmt.all(word.id, 'antonym') as { word: string }[]).map(r => r.word),
+  };
+}
+
+export function updateWord(
+  id: number,
+  word: string,
+  phonetic: string | null,
+  definitions: { definition: string; source: string }[],
+  etymologies: string[],
+  synonyms: string[],
+  antonyms: string[]
+): boolean {
+  const updateWordStmt = db.prepare('UPDATE words SET word = ?, phonetic = ? WHERE id = ?');
+  const deleteDefinitionsStmt = db.prepare('DELETE FROM definitions WHERE word_id = ?');
+  const deleteEtymologiesStmt = db.prepare('DELETE FROM etymologies WHERE word_id = ?');
+  const deleteRelatedWordsStmt = db.prepare('DELETE FROM related_words WHERE word_id = ?');
+
+  const insertDefinition = db.prepare('INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)');
+  const insertEtymology = db.prepare('INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)');
+  const insertRelatedWord = db.prepare('INSERT INTO related_words (word_id, word, type) VALUES (?, ?, ?)');
+
+  const transaction = db.transaction(() => {
+    updateWordStmt.run(word, phonetic, id);
+
+    // Clear existing data
+    deleteDefinitionsStmt.run(id);
+    deleteEtymologiesStmt.run(id);
+    deleteRelatedWordsStmt.run(id);
+
+    // Insert new data
+    definitions.forEach((def, index) => {
+      insertDefinition.run(id, def.definition, def.source, index);
+    });
+
+    etymologies.forEach(etymology => {
+      insertEtymology.run(id, etymology);
+    });
+
+    synonyms.forEach(synonym => {
+      insertRelatedWord.run(id, synonym, 'synonym');
+    });
+
+    antonyms.forEach(antonym => {
+      insertRelatedWord.run(id, antonym, 'antonym');
+    });
+  });
+
+  transaction();
+  return true;
 }
 
 export function getUserByEmail(email: string) {

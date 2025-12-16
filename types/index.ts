@@ -15,6 +15,9 @@ export interface Word {
   user_name: string | null;
   created_at: string;
   definitions: Definition[];
+  etymologies: string[];
+  synonyms: string[];
+  antonyms: string[];
 }
 
 export interface User {
@@ -31,4 +34,7 @@ export interface WordInput {
     definition: string;
     source: string;
   }[];
+  etymologies: string[];
+  synonyms: string[];
+  antonyms: string[];
 }

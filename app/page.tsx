@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import WordCard from '@/components/WordCard';
 import { Word } from '@/types';
 import styles from './page.module.css';
+import { useSession } from 'next-auth/react';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [words, setWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { data: session } = useSession();
 
   useEffect(() => {
     // Load initial words
@@ -79,7 +81,11 @@ export default function Home() {
               </h2>
               <div className={styles.wordsGrid}>
                 {words.map((word) => (
-                  <WordCard key={word.id} word={word} />
+                  <WordCard
+                    key={word.id}
+                    word={word}
+                    currentUserId={session?.user?.id ? parseInt(session.user.id) : null}
+                  />
                 ))}
               </div>
             </>

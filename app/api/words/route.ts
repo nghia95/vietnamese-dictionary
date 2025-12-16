@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { word, phonetic, definitions } = await request.json();
+        const { word, phonetic, definitions, etymologies, synonyms, antonyms } = await request.json();
 
         // Validate input
         if (!word || !definitions || !Array.isArray(definitions) || definitions.length === 0) {
@@ -54,7 +54,15 @@ export async function POST(request: NextRequest) {
 
         // Add word with definitions to database
         const userId = parseInt(session.user.id as string);
-        addWordWithDefinitions(word, phonetic || null, definitions, userId);
+        addWordWithDefinitions(
+            word,
+            phonetic || null,
+            definitions,
+            etymologies || [],
+            synonyms || [],
+            antonyms || [],
+            userId
+        );
 
         return NextResponse.json(
             { message: 'Word added successfully' },
