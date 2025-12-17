@@ -84,7 +84,7 @@ export default function Home() {
                   <WordCard
                     key={word.id}
                     word={word}
-                    currentUserId={session?.user?.id ? parseInt(session.user.id) : null}
+                    currentUserRole={session?.user?.role}
                   />
                 ))}
               </div>

@@ -30,12 +30,14 @@ export default function EditWordPage({ params }: { params: Promise<{ id: string 
                 if (response.ok) {
                     const fetchedWord: Word = data.word;
 
-                    // Allow edit if user is owner
-                    if (session?.user?.id && fetchedWord.user_id !== parseInt(session.user.id)) {
-                        setError('Bạn không có quyền chỉnh sửa từ này');
+                    // Enforce admin role
+                    if (session?.user?.role !== 'admin') {
+                        setError('Bạn không có quyền truy cập trang này');
                         setIsFetching(false);
                         return;
                     }
+
+
 
                     setWord({
                         word: fetchedWord.word,

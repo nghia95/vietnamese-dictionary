@@ -35,8 +35,8 @@ export async function PUT(
 ) {
     try {
         const session = await auth();
-        if (!session || !session.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session || !session.user || session.user.role !== 'admin') {
+            return NextResponse.json({ error: 'Unauthorized: Only admins can edit words' }, { status: 403 });
         }
 
         const { id } = await params;
@@ -50,10 +50,7 @@ export async function PUT(
             return NextResponse.json({ error: 'Word not found' }, { status: 404 });
         }
 
-        // Check ownership
-        if (existingWord.user_id !== parseInt(session.user.id as string)) {
-            return NextResponse.json({ error: 'Forbidden: You can only edit your own words' }, { status: 403 });
-        }
+
 
         const body = await request.json();
         const { word, phonetic, definitions, etymologies, synonyms, antonyms } = body;

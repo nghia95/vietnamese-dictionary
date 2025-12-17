@@ -3,10 +3,10 @@ import styles from './WordCard.module.css';
 
 interface WordCardProps {
     word: Word;
-    currentUserId?: number | null;
+    currentUserRole?: string;
 }
 
-export default function WordCard({ word, currentUserId }: WordCardProps) {
+export default function WordCard({ word, currentUserRole }: WordCardProps) {
     const formattedDate = new Date(word.created_at).toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: 'long',
@@ -22,7 +22,7 @@ export default function WordCard({ word, currentUserId }: WordCardProps) {
                         <span className={styles.phonetic}>/{word.phonetic}/</span>
                     )}
                 </div>
-                {currentUserId && word.user_id === currentUserId && (
+                {currentUserRole === 'admin' && (
                     <a href={`/edit-word/${word.id}`} className={styles.editButton} title="Chỉnh sửa từ này">
                         ✏️
                     </a>

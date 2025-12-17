@@ -105,6 +105,29 @@ export function initializeDatabase() {
     `);
   }
 
+  // Check if we need to migrate users table for roles
+  try {
+    const userColumns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+    const hasRoleColumn = userColumns.some(col => col.name === 'role');
+
+    if (!hasRoleColumn) {
+      console.log('🔄 Migrating users table to support roles...');
+      db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`);
+      console.log('✅ User role migration completed!');
+    }
+
+    // Set admin user
+    const adminEmail = 'nghiahcmut95@gmail.com';
+    const adminUser = db.prepare('SELECT * FROM users WHERE email = ?').get(adminEmail);
+    if (adminUser) {
+      db.prepare('UPDATE users SET role = ? WHERE email = ?').run('admin', adminEmail);
+      console.log(`✅ Set ${adminEmail} as ADMIN`);
+    }
+
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+
   // Create etymologies table
   db.exec(`
     CREATE TABLE IF NOT EXISTS etymologies (
@@ -388,8 +411,8 @@ export function updateWord(
 }
 
 export function getUserByEmail(email: string) {
-  const stmt = db.prepare('SELECT id, email, password_hash, name, created_at FROM users WHERE email = ?');
-  return stmt.get(email) as { id: number; email: string; password_hash: string; name: string; created_at: string } | undefined;
+  const stmt = db.prepare('SELECT id, email, password_hash, name, role, created_at FROM users WHERE email = ?');
+  return stmt.get(email) as { id: number; email: string; password_hash: string; name: string; role: string; created_at: string } | undefined;
 }
 
 export function createUser(email: string, passwordHash: string, name: string) {

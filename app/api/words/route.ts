@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
     try {
         const session = await auth();
 
-        if (!session || !session.user) {
+        if (!session || !session.user || session.user.role !== 'admin') {
             return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+                { error: 'Unauthorized: Only admins can add words' },
+                { status: 403 }
             );
         }
 
