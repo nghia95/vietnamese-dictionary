@@ -1,4 +1,4 @@
-# Từ Điển Việt - Vietnamese Dictionary
+# Từ điển tiếng Việt - Vietnamese Dictionary
 
 A modern, full-stack Vietnamese dictionary web application built with Next.js 14, TypeScript, and SQLite.
 
