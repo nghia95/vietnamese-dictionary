@@ -124,6 +124,16 @@ export function initializeDatabase() {
       console.log(`✅ Set ${adminEmail} as ADMIN`);
     }
 
+    // Check if we need to migrate users table for banned_until
+    const userColumns2 = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+    const hasBannedColumn = userColumns2.some(col => col.name === 'banned_until');
+
+    if (!hasBannedColumn) {
+      console.log('🔄 Migrating users table to support bans...');
+      db.exec(`ALTER TABLE users ADD COLUMN banned_until DATETIME`);
+      console.log('✅ User ban migration completed!');
+    }
+
   } catch (error) {
     console.error('Migration error:', error);
   }
@@ -411,8 +421,28 @@ export function updateWord(
 }
 
 export function getUserByEmail(email: string) {
-  const stmt = db.prepare('SELECT id, email, password_hash, name, role, created_at FROM users WHERE email = ?');
-  return stmt.get(email) as { id: number; email: string; password_hash: string; name: string; role: string; created_at: string } | undefined;
+  const stmt = db.prepare('SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE email = ?');
+  return stmt.get(email) as { id: number; email: string; password_hash: string; name: string; role: string; banned_until: string | null; created_at: string } | undefined;
+}
+
+export function getAllUsers() {
+  const stmt = db.prepare('SELECT id, email, name, role, banned_until, created_at FROM users ORDER BY created_at DESC');
+  return stmt.all() as { id: number; email: string; name: string; role: string; banned_until: string | null; created_at: string }[];
+}
+
+export function updateUserRole(id: number, role: string) {
+  const stmt = db.prepare('UPDATE users SET role = ? WHERE id = ?');
+  return stmt.run(role, id);
+}
+
+export function updateUserBan(id: number, bannedUntil: string | null) {
+  const stmt = db.prepare('UPDATE users SET banned_until = ? WHERE id = ?');
+  return stmt.run(bannedUntil, id);
+}
+
+export function deleteUser(id: number) {
+  const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+  return stmt.run(id);
 }
 
 export function createUser(email: string, passwordHash: string, name: string) {

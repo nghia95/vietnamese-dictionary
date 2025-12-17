@@ -20,9 +20,14 @@ export default function Header() {
                         <>
                             <span className={styles.userName}>Xin chào, {session.user?.name}</span>
                             {session.user?.role === 'admin' && (
-                                <Link href="/add-word" className="btn btn-primary">
-                                    Thêm từ mới
-                                </Link>
+                                <>
+                                    <Link href="/add-word" className="btn btn-primary">
+                                        Thêm từ mới
+                                    </Link>
+                                    <Link href="/admin/users" className="btn btn-secondary">
+                                        Quản lý người dùng
+                                    </Link>
+                                </>
                             )}
                             <button onClick={() => signOut()} className="btn btn-ghost">
                                 Đăng xuất

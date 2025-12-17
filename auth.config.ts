@@ -36,6 +36,14 @@ export const authConfig: NextAuthConfig = {
                     return null;
                 }
 
+                // Check if user is banned
+                if (user.banned_until) {
+                    const banDate = new Date(user.banned_until);
+                    if (banDate > new Date()) {
+                        throw new Error(`Tài khoản của bạn bị khóa đến ${banDate.toLocaleDateString('vi-VN')} ${banDate.toLocaleTimeString('vi-VN')}`);
+                    }
+                }
+
                 return {
                     id: user.id.toString(),
                     email: user.email,
