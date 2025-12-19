@@ -113,7 +113,7 @@ export default function CommentSection({ wordId, currentUserRole, isLoggedIn }: 
                     <span className={styles.date}>{new Date(comment.created_at).toLocaleDateString('vi-VN')}</span>
                 </div>
 
-                {comment.is_hidden && currentUserRole !== 'admin' ? (
+                {comment.is_hidden && currentUserRole !== 'admin' && currentUserRole !== 'moderator' ? (
                     <p className={styles.hiddenText}>[Bình luận đã bị ẩn]</p>
                 ) : (
                     <>
@@ -132,7 +132,7 @@ export default function CommentSection({ wordId, currentUserRole, isLoggedIn }: 
                                 </button>
                             )}
 
-                            {currentUserRole === 'admin' && (
+                            {(currentUserRole === 'admin' || currentUserRole === 'moderator') && (
                                 <button onClick={() => handleDelete(comment.id)} className={styles.deleteBtn}>
                                     🗑️ Xóa
                                 </button>

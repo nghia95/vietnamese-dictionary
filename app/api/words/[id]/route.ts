@@ -35,8 +35,8 @@ export async function PUT(
 ) {
     try {
         const session = await auth();
-        if (!session || !session.user || session.user.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized: Only admins can edit words' }, { status: 403 });
+        if (!session || !session.user || (session.user.role !== 'admin' && session.user.role !== 'moderator')) {
+            return NextResponse.json({ error: 'Unauthorized: Only admins and moderators can edit words' }, { status: 403 });
         }
 
         const { id } = await params;

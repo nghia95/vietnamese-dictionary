@@ -21,7 +21,7 @@ export default function Header() {
                     ) : session ? (
                         <>
                             <span className={styles.userName}>Xin chào, {session.user?.name}</span>
-                            {session.user?.role === 'admin' && (
+                            {(session.user?.role === 'admin' || session.user?.role === 'moderator') && (
                                 <>
                                     <Link href="/add-word" className="btn btn-primary">
                                         Thêm từ mới

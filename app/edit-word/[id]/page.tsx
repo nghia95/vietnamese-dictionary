@@ -30,8 +30,8 @@ export default function EditWordPage({ params }: { params: Promise<{ id: string 
                 if (response.ok) {
                     const fetchedWord: Word = data.word;
 
-                    // Enforce admin role
-                    if (session?.user?.role !== 'admin') {
+                    // Enforce admin or moderator role
+                    if (session?.user?.role !== 'admin' && session?.user?.role !== 'moderator') {
                         setError('Bạn không có quyền truy cập trang này');
                         setIsFetching(false);
                         return;

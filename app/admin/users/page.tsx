@@ -29,12 +29,11 @@ export default function AdminUsersPage() {
             return;
         }
 
-        if (status === 'authenticated' && session?.user?.role !== 'admin') {
-            router.push('/');
-            return;
-        }
-
-        if (status === 'authenticated' && session?.user?.role === 'admin') {
+        if (status === 'authenticated') {
+            if (session?.user?.role !== 'admin' && session?.user?.role !== 'moderator') {
+                router.push('/');
+                return;
+            }
             fetchUsers();
         }
     }, [status, session, router]);
@@ -55,8 +54,7 @@ export default function AdminUsersPage() {
         }
     };
 
-    const handleRoleUpdate = async (userId: number, currentRole: string) => {
-        const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    const handleRoleUpdate = async (userId: number, newRole: string) => {
         if (!confirm(`Are you sure you want to change role to ${newRole}?`)) return;
 
         try {
@@ -101,7 +99,8 @@ export default function AdminUsersPage() {
                 fetchUsers();
                 setSelectedUserForBan(null);
             } else {
-                alert('Failed to update ban status');
+                const data = await response.json();
+                alert(data.error || 'Failed to update ban status');
             }
         } catch (err) {
             alert('Error updating ban status');
@@ -127,6 +126,18 @@ export default function AdminUsersPage() {
         }
     };
 
+    const getRoleBadgeStyle = (role: string) => {
+        switch (role) {
+            case 'admin': return { bg: '#dbeafe', color: '#1e40af' };
+            case 'moderator': return { bg: '#fef3c7', color: '#d97706' };
+            default: return { bg: '#e5e7eb', color: '#374151' };
+        }
+    };
+
+    const currentUserRole = session?.user?.role;
+    const canManageRoles = currentUserRole === 'admin';
+    const canDeleteUsers = currentUserRole === 'admin';
+
     if (isLoading) return <div className="container loading"></div>;
 
     return (
@@ -148,65 +159,84 @@ export default function AdminUsersPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map(user => (
-                                <tr key={user.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                                    <td style={{ padding: '1rem', color: 'black' }}>{user.name}</td>
-                                    <td style={{ padding: '1rem', color: 'black' }}>{user.email}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{
-                                            padding: '0.25rem 0.5rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.875rem',
-                                            backgroundColor: user.role === 'admin' ? '#dbeafe' : '#e5e7eb',
-                                            color: user.role === 'admin' ? '#1e40af' : '#374151'
-                                        }}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        {user.banned_until && new Date(user.banned_until) > new Date() ? (
-                                            <span style={{ color: '#dc2626', fontWeight: '500' }}>
-                                                Bị cấm đến {new Date(user.banned_until).toLocaleDateString('vi-VN')}
+                            {users.map(user => {
+                                const badge = getRoleBadgeStyle(user.role);
+                                const isSelf = session?.user?.email === user.email;
+                                const isTargetAdmin = user.role === 'admin';
+                                const isTargetMod = user.role === 'moderator';
+
+                                // Ban logic:
+                                // Admin can ban anyone (except self/other admin implicitly safe by UI but API handled).
+                                // Mod can ban users. Mod CANNOT ban Admin or Mod.
+                                const canBan = !isSelf && !isTargetAdmin && (currentUserRole === 'admin' || (currentUserRole === 'moderator' && !isTargetMod));
+
+                                return (
+                                    <tr key={user.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                                        <td style={{ padding: '1rem', color: 'black' }}>{user.name}</td>
+                                        <td style={{ padding: '1rem', color: 'black' }}>{user.email}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{
+                                                padding: '0.25rem 0.5rem',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.875rem',
+                                                backgroundColor: badge.bg,
+                                                color: badge.color
+                                            }}>
+                                                {user.role}
                                             </span>
-                                        ) : (
-                                            <span style={{ color: '#059669' }}>Hoạt động</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button
-                                                onClick={() => handleRoleUpdate(user.id, user.role)}
-                                                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer' }}
-                                                disabled={user.email === 'nghiahcmut95@gmail.com'}
-                                            >
-                                                {user.role === 'admin' ? 'Gỡ Admin' : 'Thêm Admin'}
-                                            </button>
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {user.banned_until && new Date(user.banned_until) > new Date() ? (
+                                                <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                                                    Bị cấm đến {new Date(user.banned_until).toLocaleDateString('vi-VN')}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: '#059669' }}>Hoạt động</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {canManageRoles && (
+                                                    <select
+                                                        value={user.role}
+                                                        onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
+                                                        disabled={isSelf}
+                                                        style={{ padding: '0.25rem', borderRadius: '0.25rem', border: '1px solid #d1d5db' }}
+                                                    >
+                                                        <option value="user">User</option>
+                                                        <option value="moderator">Moderator</option>
+                                                        <option value="admin">Admin</option>
+                                                    </select>
+                                                )}
 
-                                            <button
-                                                onClick={() => setSelectedUserForBan(user)}
-                                                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#fef2f2', color: '#991b1b', cursor: 'pointer' }}
-                                                disabled={user.role === 'admin'}
-                                            >
-                                                {user.banned_until && new Date(user.banned_until) > new Date() ? 'Quản lý cấm' : 'Cấm'}
-                                            </button>
+                                                <button
+                                                    onClick={() => setSelectedUserForBan(user)}
+                                                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#fef2f2', color: '#991b1b', cursor: 'pointer', opacity: canBan ? 1 : 0.5 }}
+                                                    disabled={!canBan}
+                                                >
+                                                    {user.banned_until && new Date(user.banned_until) > new Date() ? 'Quản lý cấm' : 'Cấm'}
+                                                </button>
 
-                                            <button
-                                                onClick={() => handleDeleteUser(user.id)}
-                                                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#dc2626', color: 'white', cursor: 'pointer' }}
-                                                disabled={user.role === 'admin'}
-                                            >
-                                                Xóa
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                {canDeleteUsers && (
+                                                    <button
+                                                        onClick={() => handleDeleteUser(user.id)}
+                                                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#dc2626', color: 'white', cursor: 'pointer' }}
+                                                        disabled={isSelf}
+                                                    >
+                                                        Xóa
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
                         </tbody>
                     </table>
                 </div>
 
                 {selectedUserForBan && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '400px' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Quản lý lệnh cấm: {selectedUserForBan.name}</h3>
                             <div style={{ marginBottom: '1rem' }}>

@@ -18,7 +18,7 @@ export async function PATCH(
         const userId = parseInt(id);
         const { role } = await request.json();
 
-        if (!role || (role !== 'admin' && role !== 'user')) {
+        if (!role || (role !== 'admin' && role !== 'user' && role !== 'moderator')) {
             return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
         }
 

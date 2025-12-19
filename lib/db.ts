@@ -553,6 +553,26 @@ export async function getUserByEmail(email: string) {
   };
 }
 
+export async function getUserById(id: number) {
+  const result = await client.execute({
+    sql: 'SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE id = ?',
+    args: [id]
+  });
+
+  if (result.rows.length === 0) return undefined;
+  const row = result.rows[0];
+
+  return {
+    id: row.id as number,
+    email: row.email as string,
+    password_hash: row.password_hash as string,
+    name: row.name as string,
+    role: row.role as string,
+    banned_until: row.banned_until as string | null,
+    created_at: row.created_at as string
+  };
+}
+
 export async function getAllUsers() {
   const result = await client.execute('SELECT id, email, name, role, banned_until, created_at FROM users ORDER BY created_at DESC');
 

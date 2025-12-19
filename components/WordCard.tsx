@@ -97,7 +97,7 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                     </button>
                 )}
 
-                {currentUserRole === 'admin' && (
+                {(currentUserRole === 'admin' || currentUserRole === 'moderator') && (
                     <a href={`/edit-word/${word.id}`} className={styles.editButton} title="Chỉnh sửa từ này">
                         ✏️
                     </a>

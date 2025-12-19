@@ -8,7 +8,7 @@ import FeedbackList from './FeedbackList';
 
 export default async function AdminFeedbackPage() {
     const session = await auth();
-    if (!session || session.user?.role !== 'admin') {
+    if (!session || (session.user?.role !== 'admin' && session.user?.role !== 'moderator')) {
         redirect('/login');
     }
 
