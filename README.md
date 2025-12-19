@@ -4,140 +4,110 @@ A modern, full-stack Vietnamese dictionary web application built with Next.js 14
 
 ## Features
 
-✨ **Public Word Lookup** - Anyone can search and browse Vietnamese words  
-🔐 **User Authentication** - Sign up and login with email/password  
-📝 **Word Contribution** - Authenticated users can add new words with:
-  - Multiple definitions with sources
-  - Etymologies (Nguồn gốc)
-  - Synonyms and Antonyms
-✏️ **Edit Words** - Contributors can edit their own words
-🎨 **Modern UI** - Premium design with Vietnamese typography and smooth animations  
-📱 **Responsive** - Works seamlessly on desktop, tablet, and mobile devices
+### 🔍 Search & Discovery
+*   **Smart Search**: Real-time search with Vietnamese-specific sorting (A, Ă, Â...).
+*   **User History**: Authenticated users can track:
+    *   **Search History**: Automatically logs your search queries.
+    *   **View History**: Tracks words you've explored.
+    *   **Management**: View and clear your history.
+*   **Alphabetical Sorting**: Accurate Vietnamese alphabetical ordering for all word lists.
+
+### 📝 Contribution System
+*   **Word Management**: Authenticated users can add new words with:
+    *   **Images**: Upload illustrations (supporting standard file formats and URLs).
+    *   **Definitions**: Multiple meanings with sources.
+    *   **Etymologies**: Word origins.
+    *   **Relations**: Synonyms and Antonyms.
+*   **Editing**: Edit words you have contributed.
+
+### 👥 Role-Based Access Control (RBAC)
+*   **User Roles**:
+    *   **User**: Can search, view history, and add new words.
+    *   **Moderator**: Can edit *any* word (including those by others) and view user reports.
+    *   **Admin**: Full system access, including assigning roles (`Moderator`, `User`) and banning users.
+*   **Account Management**:
+    *   **[Admin Only]** Dashboard to search users, update roles, and ban/unban accounts.
+
+### 🎨 Modern UI/UX
+*   **Pastel Professional Theme**: A clean, light-mode interface featuring warm creams and fresh greens.
+*   **Responsive Design**: Mobile-friendly layout for all devices.
+*   **Interactive Cards**: Click-to-expand word cards with subtle, intuitive controls.
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Database**: SQLite with better-sqlite3
-- **Authentication**: NextAuth.js v5
-- **Styling**: Vanilla CSS with modern design system
-- **Fonts**: Lexend (optimized for Vietnamese)
+*   **Framework**: Next.js 14 (App Router)
+*   **Language**: TypeScript
+*   **Database**: SQLite (with `better-sqlite3` and `libsql`)
+*   **Authentication**: NextAuth.js v5
+*   **Styling**: Vanilla CSS (CSS Modules) with a custom Design System
+*   **Sorting**: Custom Vietnamese collation logic
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+*   Node.js 18+
+*   npm
 
 ### Installation
 
-1. Clone or navigate to this directory
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/yourusername/viet-dict.git
+    cd viet-dict
+    ```
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+3.  Run migrations (if applicable) or start dev server to auto-seed:
+    ```bash
+    npm run dev
+    ```
 
-The database (`dictionary.db`) will be automatically created and seeded with sample Vietnamese words on first run.
+4.  Open [http://localhost:3000](http://localhost:3000). The database `dictionary.db` is automatically created.
 
 ## Usage
 
-### Search for Words
-- Visit the home page
-- Type in the search box to find Vietnamese words
-- Results update in real-time as you type
+### User Features
+1.  **Sign Up/Login**: Create an account to access advanced features.
+2.  **Dashboard**: Access your History and Profile from the header.
+3.  **Add Word**: Click "Thêm từ mới", upload an image, and fill in definitions.
+4.  **Edit Own Words**: You can always edit words you have contributed.
 
-### Create an Account
-1. Click "Đăng ký" (Sign up) in the header
-2. Fill in your name, email, and password
-3. Submit the form to create your account
-
-### Login
-1. Click "Đăng nhập" (Login) in the header
-2. Enter your email and password
-3. Click login to access authenticated features
-
-### Add New Words
-1. Login to your account
-2. Click "Thêm từ mới" (Add new word) in the header
-3. Fill in the word and phonetic (optional)
-4. Add one or more **definitions** with sources
-5. Add **etymologies** (optional)
-6. Add **synonyms** and **antonyms** (optional)
-7. Submit to add the word to the dictionary
-
-### Edit Words
-1. Login to your account
-2. Navigate to a word you created (search for it)
-3. Click the **Edit** (✏️) button next to the word title
-4. Update the information and save
+### Moderator & Admin Features
+1.  **Edit Any Word (Moderator+)**: Moderators sees an edit pencil (✏️) on *all* word cards to fix errors.
+2.  **User Management (Admin Only)**: Navigate to `/admin/users` to assign roles or ban users.
 
 ## Project Structure
 
 ```
-├── app/                    # Next.js app router pages
-│   ├── api/               # API routes
-│   │   ├── auth/         # Authentication endpoints
-│   │   └── words/        # Word CRUD endpoints
-│   ├── add-word/         # Add word page (protected)
-│   ├── edit-word/        # Edit word page (protected)
-│   ├── login/            # Login page
-│   ├── signup/           # Signup page
-│   └── page.tsx          # Home page with search
-├── components/            # React components
-│   ├── Header.tsx        # Navigation header
-│   ├── WordCard.tsx      # Word display card
-│   └── WordForm.tsx      # Reusable form for Add/Edit
-├── lib/                   # Utilities and database
-│   └── db.ts             # SQLite database setup
-├── types/                 # TypeScript type definitions
-├── auth.ts               # NextAuth configuration
-└── middleware.ts         # Route protection middleware
+├── app/
+│   ├── api/               # API Routes (Words, History, Admin, Images)
+│   ├── admin/             # Admin Dashboard
+│   ├── history/           # User History Page
+│   ├── add-word/          # Word Creation
+│   ├── edit-word/         # Word Editing
+│   └── page.tsx           # Home & Search
+├── components/            # Reusable UI Components
+│   ├── WordCard/          # Complex Word Display Logic
+│   ├── Header/            # Navigation & Auth Status
+│   └── ...
+├── lib/
+│   ├── db.ts              # Database Client & Helpers
+│   └── utils.ts           # Sorting & Formatting Utilities
+├── scripts/               # Database Migrations & utilities
+└── public/                # Static assets
 ```
 
 ## Database Schema
 
-### Users Table
-- `id` - Primary key
-- `email` - Unique email address
-- `password_hash` - Hashed password
-- `name` - User's display name
-- `created_at` - Registration timestamp
-
-### Words Table
-- `id` - Primary key
-- `word` - The Vietnamese word
-- `phonetic` - Optional phonetic pronunciation
-- `user_id` - Foreign key to users (contributor)
-- `created_at` - Addition timestamp
-
-### Definitions Table
-- `id`, `word_id`, `definition`, `source`, `order`
-
-### Etymologies Table
-- `id`, `word_id`, `etymology`
-
-### Related Words Table
-- `id`, `word_id`, `word`, `type` ('synonym' or 'antonym')
-
-## Development
-
-```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
+*   **Users**: `id`, `email`, `role` (user/moderator/admin), `banned`
+*   **Words**: `id`, `word`, `image`, `sort_key`, `user_id`
+*   **History**: `id`, `user_id`, `type` (SEARCH/VIEW), `data`
+*   **Definitions/Etymologies/Relations**: Related tables for word details.
 
 ## License
 

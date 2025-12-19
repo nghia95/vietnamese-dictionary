@@ -1,46 +1,69 @@
 :root {
-  /* Color System */
-  --primary-violet: #8b5cf6;
-  --primary-violet-dark: #7c3aed;
-  --primary-violet-light: #a78bfa;
-  
-  --secondary-cyan: #06b6d4;
-  --secondary-cyan-dark: #0891b2;
-  --secondary-cyan-light: #22d3ee;
-  
-  --accent-pink: #ec4899;
-  --accent-orange: #f97316;
-  --accent-green: #10b981;
-  
-  /* Neutral Colors */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-card: rgba(30, 41, 59, 0.6);
-  
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  
-  --border-color: rgba(148, 163, 184, 0.2);
-  
+  /* Color System - Pastel Professional */
+  /* Primary Green (Nature/Growth) */
+  --primary-green: #059669;
+  /* Strong green for text/icons */
+  --primary-green-light: #34D399;
+  /* Bright mint definition */
+  --primary-green-soft: #D1FAE5;
+  /* Soft mint background */
+
+  /* Accent Yellow (Warmth/Optimism) */
+  --accent-yellow: #F59E0B;
+  /* Readable golden yellow */
+  --accent-yellow-light: #FCD34D;
+  /* Pastel yellow accent */
+  --accent-yellow-soft: #FEF3C7;
+  /* Butter background */
+
+  /* Legacy variable mappings for compatibility */
+  --primary-violet: var(--primary-green);
+  --primary-violet-light: var(--primary-green-light);
+  --primary-violet-dark: #064E3B;
+  /* Darker green */
+  --secondary-cyan: var(--accent-yellow);
+  --accent-pink: #F43F5E;
+  /* Rose (kept for errors/alerts) */
+  --accent-green: var(--primary-green);
+
+  /* Neutral Colors (Light Theme) */
+  --bg-primary: #FDFCF5;
+  /* Warm Cream */
+  --bg-secondary: #F0FDF4;
+  /* Mint Cream */
+  --bg-tertiary: #ECFDF5;
+  /* Sage tint */
+  --bg-card: #FFFFFF;
+  /* Pure White */
+
+  --text-primary: #1C1917;
+  /* Warm Black */
+  --text-secondary: #4B5563;
+  /* Cool Grey */
+  --text-muted: #9CA3AF;
+  /* Light Grey */
+
+  --border-color: #E5E7EB;
+  /* Light Grey Border */
+
   /* Spacing */
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
-  
+
   /* Radii */
   --radius-sm: 0.5rem;
   --radius-md: 1rem;
   --radius-lg: 1.5rem;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.3);
+
+  /* Shadows (Soft & Diffused) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 15px rgba(52, 211, 153, 0.3);
+  /* Green Glow */
 }
 
 * {
@@ -59,22 +82,30 @@ body {
   font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f3a 100%);
+  background: linear-gradient(180deg, var(--bg-primary) 0%, #F0F9FF 100%);
+  /* Cream to very light blue */
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
   line-height: 1.2;
   margin-bottom: 1rem;
+  color: var(--primary-violet-dark);
+  /* Using mapped dark green */
 }
 
 h1 {
   font-size: 3rem;
-  background: linear-gradient(135deg, var(--primary-violet-light) 0%, var(--secondary-cyan) 100%);
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-yellow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -95,13 +126,13 @@ p {
 }
 
 a {
-  color: var(--primary-violet-light);
+  color: var(--primary-green);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--secondary-cyan);
+  color: var(--accent-yellow);
 }
 
 /* Buttons */
@@ -113,7 +144,7 @@ a:hover {
   border: none;
   border-radius: var(--radius-sm);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   text-decoration: none;
@@ -121,7 +152,7 @@ a:hover {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-violet) 0%, var(--primary-violet-dark) 100%);
+  background: linear-gradient(135deg, var(--primary-green) 0%, #047857 100%);
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -129,17 +160,17 @@ a:hover {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md), var(--shadow-glow);
+  filter: brightness(1.05);
 }
 
 .btn-secondary {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--primary-green);
+  border: 1px solid var(--primary-green);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-card);
-  border-color: var(--primary-violet-light);
+  background: var(--bg-secondary);
 }
 
 .btn-ghost {
@@ -148,7 +179,8 @@ a:hover {
 }
 
 .btn-ghost:hover {
-  color: var(--primary-violet-light);
+  color: var(--primary-green);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 /* Forms */
@@ -160,7 +192,7 @@ label {
   display: block;
   margin-bottom: var(--spacing-xs);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
 }
 
@@ -168,21 +200,21 @@ input,
 textarea {
   width: 100%;
   padding: 0.875rem 1rem;
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 1rem;
   font-family: inherit;
   transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--primary-violet);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 textarea {
@@ -197,12 +229,11 @@ textarea {
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(20px);
   transition: all 0.3s ease;
 }
 
 .card:hover {
-  border-color: var(--primary-violet-light);
+  border-color: var(--primary-green-light);
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
@@ -219,22 +250,45 @@ textarea {
   text-align: center;
 }
 
-.mt-1 { margin-top: var(--spacing-xs); }
-.mt-2 { margin-top: var(--spacing-sm); }
-.mt-3 { margin-top: var(--spacing-md); }
-.mt-4 { margin-top: var(--spacing-lg); }
+.mt-1 {
+  margin-top: var(--spacing-xs);
+}
 
-.mb-1 { margin-bottom: var(--spacing-xs); }
-.mb-2 { margin-bottom: var(--spacing-sm); }
-.mb-3 { margin-bottom: var(--spacing-md); }
-.mb-4 { margin-bottom: var(--spacing-lg); }
+.mt-2 {
+  margin-top: var(--spacing-sm);
+}
+
+.mt-3 {
+  margin-top: var(--spacing-md);
+}
+
+.mt-4 {
+  margin-top: var(--spacing-lg);
+}
+
+.mb-1 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.mb-2 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.mb-3 {
+  margin-bottom: var(--spacing-md);
+}
+
+.mb-4 {
+  margin-bottom: var(--spacing-lg);
+}
 
 /* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -244,8 +298,9 @@ textarea {
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -269,15 +324,15 @@ textarea {
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid var(--accent-green);
-  color: var(--accent-green);
+  background: var(--bg-secondary);
+  border: 1px solid var(--primary-green);
+  color: var(--primary-violet-dark);
 }
 
 .alert-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  color: #fca5a5;
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
 }
 
 /* Loading States */
@@ -285,14 +340,16 @@ textarea {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  border: 3px solid rgba(16, 185, 129, 0.2);
   border-radius: 50%;
-  border-top-color: white;
+  border-top-color: var(--primary-green);
   animation: spin 1s ease-in-out infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */
@@ -300,11 +357,11 @@ textarea {
   h1 {
     font-size: 2rem;
   }
-  
+
   h2 {
     font-size: 1.5rem;
   }
-  
+
   .container {
     padding: 0 var(--spacing-sm);
   }

@@ -94,29 +94,43 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                 </div>
 
                 {isLoggedIn && (
-                    <button className={styles.feedbackButton} onClick={() => setShowFeedback(true)} title="Báo lỗi / Góp ý">
-                        ⚠️ Báo lỗi
+                    <button
+                        className={`${styles.actionButton} ${styles.reportButton}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowFeedback(true);
+                        }}
+                        title="Báo lỗi / Góp ý">
+                        🚩
                     </button>
                 )}
 
                 {(currentUserRole === 'admin' || currentUserRole === 'moderator') && (
-                    <a href={`/edit-word/${word.id}`} className={styles.editButton} title="Chỉnh sửa từ này">
+                    <a
+                        href={`/edit-word/${word.id}`}
+                        className={styles.actionButton}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Chỉnh sửa từ này">
                         ✏️
                     </a>
                 )}
                 {!isExpanded && (
-                    <button className={styles.expandButton} onClick={() => {
-                        setIsExpanded(true);
-                        // Log view history
-                        if (isLoggedIn) {
-                            fetch('/api/history', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ type: 'VIEW', wordId: word.id })
-                            }).catch(console.error);
-                        }
-                    }} title="Xem toàn màn hình">
-                        ⤢ Mở rộng
+                    <button
+                        className={styles.actionButton}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsExpanded(true);
+                            // Log view history
+                            if (isLoggedIn) {
+                                fetch('/api/history', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: 'VIEW', wordId: word.id })
+                                }).catch(console.error);
+                            }
+                        }}
+                        title="Xem toàn màn hình">
+                        ⤢
                     </button>
                 )}
             </div>
@@ -262,7 +276,19 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                     </div>
                 </>
             ) : (
-                <div className={`card ${styles.wordCard}`}>
+                <div
+                    className={`card ${styles.wordCard}`}
+                    onClick={() => {
+                        setIsExpanded(true);
+                        if (isLoggedIn) {
+                            fetch('/api/history', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'VIEW', wordId: word.id })
+                            }).catch(console.error);
+                        }
+                    }}
+                >
                     <WordContent />
                 </div>
             )}

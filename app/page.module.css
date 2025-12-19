@@ -5,7 +5,7 @@
 .hero {
   padding: 4rem 0 3rem;
   text-align: center;
-  background: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.15) 0%, transparent 60%);
+  background: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.1) 0%, transparent 60%);
 }
 
 .heroTitle {
@@ -53,8 +53,8 @@
 }
 
 .searchInput:focus {
-  border-color: var(--primary-violet);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), var(--shadow-glow);
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15), var(--shadow-glow);
   transform: translateY(-2px);
 }
 
@@ -97,7 +97,7 @@
   font-size: 4rem;
   display: block;
   margin-bottom: 1.5rem;
-  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.3));
+  filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.3));
 }
 
 .emptyState h3 {

@@ -1,5 +1,47 @@
+/* Update interactivity */
 .wordCard {
     animation: fadeIn 0.4s ease-out;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.wordCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* New Action Buttons */
+.actionButton {
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: all 0.2s;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.actionButton:hover {
+    background: var(--background-secondary);
+    color: var(--text-primary);
+    opacity: 1;
+}
+
+.reportButton {
+    color: var(--accent-pink);
+    opacity: 0.7;
+}
+
+.reportButton:hover {
+    background: rgba(255, 0, 128, 0.1);
+    opacity: 1;
 }
 
 .wordHeader {
@@ -13,14 +55,19 @@
 .wordTitle {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--primary-violet-light);
+    color: var(--primary-violet-dark);
+    /* Uses mapped dark green */
     margin: 0;
 }
 
 .phonetic {
-    color: var(--secondary-cyan);
+    color: var(--text-secondary);
     font-style: italic;
     font-size: 1rem;
+    border: 1px solid var(--border-color);
+    padding: 0 0.5rem;
+    border-radius: 12px;
+    background: white;
 }
 
 .editButton {
@@ -33,7 +80,7 @@
 }
 
 .editButton:hover {
-    background-color: var(--background-secondary);
+    background-color: var(--bg-secondary);
 }
 
 .definitionsList {
@@ -57,7 +104,7 @@
 
 .definitionNumber {
     font-weight: 700;
-    color: var(--primary-violet-light);
+    color: var(--primary-green);
     margin-right: 0.5rem;
 }
 
@@ -113,17 +160,19 @@
 }
 
 .relatedBadge {
-    background-color: var(--background-secondary);
-    color: var(--primary-violet);
+    background-color: var(--bg-tertiary);
+    color: var(--primary-green);
     padding: 0.2rem 0.6rem;
     border-radius: 12px;
     font-size: 0.9rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid transparent;
 }
 
 .relatedBadge.antonym {
-    color: var(--accent-pink);
-    background-color: rgba(255, 0, 128, 0.05);
+    color: #BE123C;
+    /* Rose Red */
+    background-color: #FFE4E6;
+    /* Rose Light */
 }
 
 .wordMeta {
@@ -139,7 +188,7 @@
 }
 
 .contributor strong {
-    color: var(--text-secondary);
+    color: var(--primary-violet-dark);
 }
 
 .date {
