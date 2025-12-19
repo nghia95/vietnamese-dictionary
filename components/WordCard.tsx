@@ -30,14 +30,28 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
             </div>
 
             <div className={styles.definitionsList}>
-                {word.definitions.map((def, index) => (
-                    <div key={def.id} className={styles.definitionItem}>
-                        <div className={styles.definitionText}>
-                            <span className={styles.definitionNumber}>{index + 1}.</span>
-                            {def.definition}
+                {Object.entries(
+                    word.definitions.reduce((acc, def) => {
+                        const src = def.source || 'Community';
+                        if (!acc[src]) acc[src] = [];
+                        acc[src].push(def);
+                        return acc;
+                    }, {} as Record<string, typeof word.definitions>)
+                ).map(([source, definitions], groupIndex) => (
+                    <div key={source} className={styles.definitionGroup} style={{ marginBottom: '1.5rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <div className={styles.definitionSource} style={{ marginBottom: '0.8rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                            <span style={{ marginRight: '0.5rem' }}>📚</span>
+                            Nguồn: <span style={{ color: 'var(--accent-blue)' }}>{source}</span>
                         </div>
-                        <div className={styles.definitionSource}>
-                            Nguồn: {def.source}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {definitions.map((def, index) => (
+                                <div key={def.id} className={styles.definitionItem} style={{ marginLeft: '1rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '0.8rem' }}>
+                                    <div className={styles.definitionText}>
+                                        <span className={styles.definitionNumber} style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>{index + 1}.</span>
+                                        {def.definition}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 ))}

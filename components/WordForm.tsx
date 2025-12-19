@@ -28,6 +28,12 @@ interface WordFormProps {
     contributorName?: string | null;
 }
 
+interface SourceGroup {
+    id: number;
+    source: string;
+    definitions: { id: number; text: string }[];
+}
+
 export default function WordForm({
     initialData,
     onSubmit,
@@ -40,39 +46,112 @@ export default function WordForm({
 }: WordFormProps) {
     const [word, setWord] = useState('');
     const [phonetic, setPhonetic] = useState('');
-    const [definitions, setDefinitions] = useState<DefinitionInput[]>([
-        { definition: '', source: '' }
+    // Grouped state
+    const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([
+        { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] }
     ]);
+    const [availableSources, setAvailableSources] = useState<string[]>([]);
+
     const [etymologies, setEtymologies] = useState<string[]>(['']);
     const [synonyms, setSynonyms] = useState('');
     const [antonyms, setAntonyms] = useState('');
 
     useEffect(() => {
+        // Fetch available sources
+        const fetchSources = async () => {
+            try {
+                const res = await fetch('/api/sources');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableSources(data.sources || []);
+                }
+            } catch (err) {
+                console.error('Failed to fetch sources', err);
+            }
+        };
+        fetchSources();
+    }, []);
+
+    useEffect(() => {
         if (initialData) {
             setWord(initialData.word);
             setPhonetic(initialData.phonetic);
-            setDefinitions(initialData.definitions);
+
+            // Reconstruct source groups from flat definitions
+            const groups: SourceGroup[] = [];
+            const processedSources = new Set<string>();
+
+            // Group by source
+            const groupedDefs: Record<string, string[]> = {};
+            initialData.definitions.forEach(def => {
+                const src = def.source || 'Community';
+                if (!groupedDefs[src]) groupedDefs[src] = [];
+                groupedDefs[src].push(def.definition);
+            });
+
+            Object.entries(groupedDefs).forEach(([source, texts], idx) => {
+                groups.push({
+                    id: Date.now() + idx,
+                    source,
+                    definitions: texts.map((text, i) => ({ id: Date.now() + idx + i + 100, text }))
+                });
+            });
+
+            if (groups.length === 0) {
+                groups.push({ id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] });
+            }
+
+            setSourceGroups(groups);
             setEtymologies(initialData.etymologies.length > 0 ? initialData.etymologies : ['']);
             setSynonyms(initialData.synonyms);
             setAntonyms(initialData.antonyms);
         }
     }, [initialData]);
 
-    const handleAddDefinition = () => {
-        setDefinitions([...definitions, { definition: '', source: '' }]);
+    // --- Source Group Handlers ---
+
+    const handleAddSourceGroup = () => {
+        setSourceGroups([
+            ...sourceGroups,
+            { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] }
+        ]);
     };
 
-    const handleRemoveDefinition = (index: number) => {
-        if (definitions.length > 1) {
-            setDefinitions(definitions.filter((_, i) => i !== index));
+    const handleRemoveSourceGroup = (index: number) => {
+        if (sourceGroups.length > 1) {
+            setSourceGroups(sourceGroups.filter((_, i) => i !== index));
         }
     };
 
-    const handleDefinitionChange = (index: number, field: 'definition' | 'source', value: string) => {
-        const newDefinitions = [...definitions];
-        newDefinitions[index][field] = value;
-        setDefinitions(newDefinitions);
+    const handleSourceChange = (index: number, value: string) => {
+        const newGroups = [...sourceGroups];
+        newGroups[index].source = value;
+        setSourceGroups(newGroups);
     };
+
+    // --- Definition Handlers (inside a group) ---
+
+    const handleAddDefinitionToGroup = (groupIndex: number) => {
+        const newGroups = [...sourceGroups];
+        newGroups[groupIndex].definitions.push({ id: Date.now(), text: '' });
+        setSourceGroups(newGroups);
+    };
+
+    const handleRemoveDefinitionFromGroup = (groupIndex: number, defIndex: number) => {
+        const newGroups = [...sourceGroups];
+        if (newGroups[groupIndex].definitions.length > 1) {
+            newGroups[groupIndex].definitions = newGroups[groupIndex].definitions.filter((_, i) => i !== defIndex);
+            setSourceGroups(newGroups);
+        }
+    };
+
+    const handleDefinitionChange = (groupIndex: number, defIndex: number, value: string) => {
+        const newGroups = [...sourceGroups];
+        newGroups[groupIndex].definitions[defIndex].text = value;
+        setSourceGroups(newGroups);
+    };
+
+    // --- Etymology Handlers ---
 
     const handleEtymologyChange = (index: number, value: string) => {
         const newEtymologies = [...etymologies];
@@ -92,10 +171,30 @@ export default function WordForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Flatten SourceGroups back to DefinitionInput[]
+        const flatDefinitions: DefinitionInput[] = [];
+        sourceGroups.forEach(group => {
+            const finalSource = group.source.trim() || 'Community';
+            group.definitions.forEach(def => {
+                if (def.text.trim()) {
+                    flatDefinitions.push({
+                        definition: def.text.trim(),
+                        source: finalSource
+                    });
+                }
+            });
+        });
+
+        if (flatDefinitions.length === 0) {
+            alert('Vui lòng nhập ít nhất một định nghĩa');
+            return;
+        }
+
         onSubmit({
             word,
             phonetic,
-            definitions,
+            definitions: flatDefinitions,
             etymologies: etymologies.filter(e => e.trim() !== ''),
             synonyms,
             antonyms
@@ -140,47 +239,80 @@ export default function WordForm({
 
                 <div className={styles.definitionsSection}>
                     <div className={styles.definitionsSectionHeader}>
-                        <label>Nghĩa <span style={{ color: 'var(--accent-pink)' }}>*</span></label>
-                        <p className={styles.helperText}>Thêm nhiều nghĩa từ các nguồn khác nhau</p>
+                        <label>Nghĩa & Nguồn <span style={{ color: 'var(--accent-pink)' }}>*</span></label>
+                        <p className={styles.helperText}>Nhập nguồn, sau đó thêm các nghĩa thuộc nguồn đó.</p>
                     </div>
 
                     <div className={styles.definitionsList}>
-                        {definitions.map((def, index) => (
-                            <div key={index} className={styles.definitionEntry}>
-                                <div className={styles.definitionHeader}>
-                                    <span className={styles.definitionNumber}>Nghĩa #{index + 1}</span>
-                                    {definitions.length > 1 && (
+                        {sourceGroups.map((group, groupIndex) => (
+                            <div key={group.id} className={styles.sourceGroup} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', marginBottom: '15px', background: 'var(--bg-secondary)' }}>
+                                <div className={styles.definitionHeader} style={{ marginBottom: '10px' }}>
+                                    <span className={styles.definitionNumber}>Nguồn #{groupIndex + 1}</span>
+                                    {sourceGroups.length > 1 && (
                                         <button
                                             type="button"
                                             className={styles.removeButton}
-                                            onClick={() => handleRemoveDefinition(index)}
-                                            title="Xóa nghĩa này"
+                                            onClick={() => handleRemoveSourceGroup(groupIndex)}
+                                            title="Xóa nguồn này"
                                         >
                                             ✕
                                         </button>
                                     )}
                                 </div>
 
+                                {/* Source Selector */}
                                 <div className="form-group">
-                                    <label htmlFor={`definition-${index}`}>Nghĩa</label>
-                                    <textarea
-                                        id={`definition-${index}`}
-                                        value={def.definition}
-                                        onChange={(e) => handleDefinitionChange(index, 'definition', e.target.value)}
-                                        placeholder="Nhập nghĩa của từ..."
-                                        rows={3}
-                                    />
+                                    <label>Chọn hoặc nhập Nguồn</label>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <input
+                                            type="text"
+                                            list={`sources-list-${groupIndex}`}
+                                            value={group.source}
+                                            onChange={(e) => handleSourceChange(groupIndex, e.target.value)}
+                                            placeholder="Ví dụ: Từ điển Việt-Anh"
+                                            style={{ flex: 1 }}
+                                        />
+                                        <datalist id={`sources-list-${groupIndex}`}>
+                                            {availableSources.map((src, i) => (
+                                                <option key={i} value={src} />
+                                            ))}
+                                        </datalist>
+                                    </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label htmlFor={`source-${index}`}>Nguồn</label>
-                                    <input
-                                        id={`source-${index}`}
-                                        type="text"
-                                        value={def.source}
-                                        onChange={(e) => handleDefinitionChange(index, 'source', e.target.value)}
-                                        placeholder="Ví dụ: Từ điển Việt-Anh, Wikipedia, Community"
-                                    />
+                                {/* Definitions in this source */}
+                                <div style={{ marginLeft: '20px', borderLeft: '2px solid var(--accent-blue)', paddingLeft: '15px' }}>
+                                    {group.definitions.map((def, defIndex) => (
+                                        <div key={def.id} className="form-group" style={{ marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <label htmlFor={`def-${group.id}-${def.id}`} style={{ fontSize: '0.9em' }}>Nghĩa #{defIndex + 1}</label>
+                                                {group.definitions.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveDefinitionFromGroup(groupIndex, defIndex)}
+                                                        style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer', fontSize: '1.2em' }}
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <textarea
+                                                id={`def-${group.id}-${def.id}`}
+                                                value={def.text}
+                                                onChange={(e) => handleDefinitionChange(groupIndex, defIndex, e.target.value)}
+                                                placeholder="Nhập nghĩa..."
+                                                rows={2}
+                                            />
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAddDefinitionToGroup(groupIndex)}
+                                        style={{ fontSize: '0.9em', color: 'var(--accent-blue)', background: 'none', border: '1px dashed var(--accent-blue)', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                        + Thêm nghĩa cho nguồn này
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -189,9 +321,9 @@ export default function WordForm({
                     <button
                         type="button"
                         className={styles.addDefinitionButton}
-                        onClick={handleAddDefinition}
+                        onClick={handleAddSourceGroup}
                     >
-                        ➕ Thêm nghĩa khác
+                        ➕ Thêm Nguồn Khác
                     </button>
                 </div>
 
