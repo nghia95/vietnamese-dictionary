@@ -1,0 +1,109 @@
+.container {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.list {
+    margin-bottom: 1.5rem;
+}
+
+.commentItem {
+    margin-bottom: 1rem;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+}
+
+.commentItem:hover {
+    border-left: 3px solid var(--accent-blue);
+}
+
+.commentHeader {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.date {
+    color: var(--text-muted);
+}
+
+.commentContent {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+}
+
+.hiddenText {
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.actions {
+    display: flex;
+    gap: 15px;
+    font-size: 0.9em;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+}
+
+.actionBtn:hover {
+    color: var(--primary-violet);
+}
+
+.liked {
+    color: var(--primary-violet);
+    font-weight: bold;
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ff4d4f;
+    padding: 0;
+}
+
+.postBox {
+    margin-top: 1rem;
+}
+
+.textarea,
+.input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.replyBox {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.loginPrompt {
+    font-size: 0.9em;
+    text-align: center;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 10px;
+    border-radius: 6px;
+}

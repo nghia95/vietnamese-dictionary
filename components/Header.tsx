@@ -5,7 +5,7 @@ import Link from 'next/link';
 import styles from './Header.module.css';
 
 export default function Header() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
 
     return (
         <header className={styles.header}>
@@ -16,7 +16,9 @@ export default function Header() {
                 </Link>
 
                 <nav className={styles.nav}>
-                    {session ? (
+                    {status === 'loading' ? (
+                        <div style={{ width: '100px', height: '36px' }}></div>
+                    ) : session ? (
                         <>
                             <span className={styles.userName}>Xin chào, {session.user?.name}</span>
                             {session.user?.role === 'admin' && (
@@ -26,6 +28,9 @@ export default function Header() {
                                     </Link>
                                     <Link href="/admin/users" className="btn btn-secondary">
                                         Quản lý người dùng
+                                    </Link>
+                                    <Link href="/admin/feedbacks" className="btn btn-secondary" style={{ marginLeft: '10px' }}>
+                                        Phản hồi
                                     </Link>
                                 </>
                             )}

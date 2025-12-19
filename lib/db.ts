@@ -2,9 +2,16 @@ import { createClient, type Client } from '@libsql/client';
 import { Word, Definition } from '@/types';
 
 // Create Turso/LibSQL client
+const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
+console.log('[DB] Initializing client...');
+console.log(`[DB] URL: ${url.includes('turso') ? 'Turso Remote' : url}`);
+console.log(`[DB] Token present: ${!!authToken}`);
+
 const client: Client = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:dictionary.db',
-  authToken: process.env.TURSO_AUTH_TOKEN,
+  url,
+  authToken,
 });
 
 // Initialize database tables
@@ -76,6 +83,52 @@ export async function initializeDatabase() {
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_etymologies_word_id ON etymologies(word_id)`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_related_words_word_id ON related_words(word_id)`);
 
+  // Create comments table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      parent_id INTEGER,
+      likes_count INTEGER DEFAULT 0,
+      is_hidden INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create comment_likes table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS comment_likes (
+      comment_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (comment_id, user_id),
+      FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create feedbacks table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS feedbacks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER,
+      user_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT DEFAULT 'new',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE SET NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_word_id ON comments(word_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id)`);
+
   // Set admin user
   const adminEmail = 'nghiahcmut95@gmail.com';
   const adminUser = await client.execute({
@@ -89,6 +142,129 @@ export async function initializeDatabase() {
     });
     console.log(`✅ Set ${adminEmail} as ADMIN`);
   }
+}
+
+// --- Comment & Feedback Helpers ---
+
+export async function getCommentsForWord(wordId: number, currentUserId?: number) {
+  const result = await client.execute({
+    sql: `
+      SELECT 
+        c.id, c.word_id, c.user_id, c.content, c.parent_id, c.likes_count, c.is_hidden, c.created_at,
+        u.name as user_name,
+        EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = ?) as is_liked
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.word_id = ?
+      ORDER BY c.likes_count DESC, c.created_at DESC
+    `,
+    args: [currentUserId || -1, wordId]
+  });
+
+  return result.rows.map(row => ({
+    id: row.id as number,
+    word_id: row.word_id as number,
+    user_id: row.user_id as number,
+    user_name: row.user_name as string,
+    content: row.content as string,
+    parent_id: row.parent_id as number | null,
+    likes_count: row.likes_count as number,
+    is_hidden: Boolean(row.is_hidden),
+    is_liked: Boolean(row.is_liked),
+    created_at: row.created_at as string
+  }));
+}
+
+export async function addComment(wordId: number, userId: number, content: string, parentId?: number) {
+  const result = await client.execute({
+    sql: 'INSERT INTO comments (word_id, user_id, content, parent_id) VALUES (?, ?, ?, ?)',
+    args: [wordId, userId, content, parentId || null]
+  });
+  return Number(result.lastInsertRowid);
+}
+
+export async function toggleCommentLike(commentId: number, userId: number) {
+  // Check if liked
+  const check = await client.execute({
+    sql: 'SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?',
+    args: [commentId, userId]
+  });
+
+  if (check.rows.length > 0) {
+    // Un-like
+    await client.execute({
+      sql: 'DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?',
+      args: [commentId, userId]
+    });
+    await client.execute({
+      sql: 'UPDATE comments SET likes_count = likes_count - 1 WHERE id = ?',
+      args: [commentId]
+    });
+    return false;
+  } else {
+    // Like
+    await client.execute({
+      sql: 'INSERT INTO comment_likes (comment_id, user_id) VALUES (?, ?)',
+      args: [commentId, userId]
+    });
+    await client.execute({
+      sql: 'UPDATE comments SET likes_count = likes_count + 1 WHERE id = ?',
+      args: [commentId]
+    });
+    return true;
+  }
+}
+
+export async function deleteComment(commentId: number) {
+  return await client.execute({
+    sql: 'DELETE FROM comments WHERE id = ? OR parent_id = ?',
+    args: [commentId, commentId]
+  });
+}
+
+export async function hideComment(commentId: number, isHidden: boolean) {
+  return await client.execute({
+    sql: 'UPDATE comments SET is_hidden = ? WHERE id = ?',
+    args: [isHidden ? 1 : 0, commentId]
+  });
+}
+
+export async function addFeedback(wordId: number | null, userId: number, content: string) {
+  return await client.execute({
+    sql: 'INSERT INTO feedbacks (word_id, user_id, content) VALUES (?, ?, ?)',
+    args: [wordId, userId, content]
+  });
+}
+
+export async function getAllFeedbacks() {
+  const result = await client.execute(`
+    SELECT f.id, f.word_id, f.user_id, f.content, f.status, f.created_at,
+           u.name as user_name, u.email as user_email,
+           w.word as word_text
+    FROM feedbacks f
+    JOIN users u ON f.user_id = u.id
+    LEFT JOIN words w ON f.word_id = w.id
+    ORDER BY f.created_at DESC
+  `);
+
+  return result.rows.map(row => ({
+    id: row.id as number,
+    word_id: row.word_id as number | null,
+    word_text: row.word_text as string | null,
+    user_id: row.user_id as number,
+    user_name: row.user_name as string,
+    user_email: row.user_email as string,
+    content: row.content as string,
+    status: row.status as string,
+    created_at: row.created_at as string
+  }));
+}
+
+export async function updateFeedbackStatus(id: number, status: string) {
+  return await client.execute({
+    sql: 'UPDATE feedbacks SET status = ? WHERE id = ?',
+    args: [status, id]
+  });
 }
 
 // Database query functions

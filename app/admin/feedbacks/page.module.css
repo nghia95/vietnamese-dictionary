@@ -1,0 +1,78 @@
+.title {
+    margin-bottom: 2rem;
+    color: var(--primary-violet);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.status {
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.75rem;
+}
+
+.status.new {
+    background: #e6f7ff;
+    color: #1890ff;
+}
+
+.status.read {
+    background: #f6ffed;
+    color: #52c41a;
+}
+
+.targetWord {
+    margin-bottom: 0.5rem;
+    color: var(--primary-violet);
+}
+
+.content {
+    background: var(--bg-primary);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    white-space: pre-wrap;
+}
+
+.user {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.resolveButton {
+    width: 100%;
+    padding: 0.5rem;
+    background: transparent;
+    border: 1px solid #52c41a;
+    color: #52c41a;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.resolveButton:hover {
+    background: #52c41a;
+    color: white;
+}
