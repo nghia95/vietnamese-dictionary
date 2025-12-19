@@ -1,0 +1,118 @@
+.historyPage {
+    padding: 2rem 0;
+    min-height: 80vh;
+}
+
+.pageTitle {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tab {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.8rem 1.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    background: var(--bg-hover);
+}
+
+.tab.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
+.clearButton {
+    background: transparent;
+    border: 1px solid var(--color-error);
+    color: var(--color-error);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.clearButton:hover:not(:disabled) {
+    background: var(--color-error);
+    color: white;
+}
+
+.clearButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+}
+
+.historyList {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.historyItem {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.historyItem:last-child {
+    border-bottom: none;
+}
+
+.time {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 150px;
+}
+
+.content {
+    flex: 1;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.highlight {
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+
+.link {
+    font-weight: bold;
+    color: var(--accent-blue);
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+.emptyState {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+}

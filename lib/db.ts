@@ -1,5 +1,6 @@
 import { createClient, type Client } from '@libsql/client';
 import { Word, Definition } from '@/types';
+import { getVietnameseSortKey } from './utils';
 
 // Create Turso/LibSQL client
 const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
@@ -35,6 +36,8 @@ export async function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       word TEXT NOT NULL,
       phonetic TEXT,
+      image TEXT,
+      sort_key TEXT,
       user_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -275,13 +278,14 @@ export async function searchWords(query: string): Promise<Word[]> {
         w.id,
         w.word,
         w.phonetic,
+        w.image,
         w.user_id,
         u.name as user_name,
         w.created_at
       FROM words w
       LEFT JOIN users u ON w.user_id = u.id
       WHERE w.word LIKE ? COLLATE NOCASE
-      ORDER BY w.word
+      ORDER BY w.sort_key ASC
       LIMIT 50
     `,
     args: [`%${query}%`]
@@ -291,6 +295,7 @@ export async function searchWords(query: string): Promise<Word[]> {
     id: row.id as number,
     word: row.word as string,
     phonetic: row.phonetic as string | null,
+    image: row.image as string | null,
     user_id: row.user_id as number | null,
     user_name: row.user_name as string | null,
     created_at: row.created_at as string,
@@ -373,15 +378,17 @@ export async function searchWords(query: string): Promise<Word[]> {
 export async function addWordWithDefinitions(
   word: string,
   phonetic: string | null,
+  image: string | null,
   definitions: { definition: string; source: string }[],
   etymologies: string[],
   synonyms: string[],
   antonyms: string[],
   userId: number | null
 ): Promise<number> {
+  const sortKey = getVietnameseSortKey(word);
   const result = await client.execute({
-    sql: 'INSERT INTO words (word, phonetic, user_id) VALUES (?, ?, ?)',
-    args: [word, phonetic, userId]
+    sql: 'INSERT INTO words (word, phonetic, image, sort_key, user_id) VALUES (?, ?, ?, ?, ?)',
+    args: [word, phonetic, image, sortKey, userId]
   });
 
   const wordId = Number(result.lastInsertRowid);
@@ -424,6 +431,7 @@ export async function getWordById(id: number): Promise<Word | undefined> {
         w.id,
         w.word,
         w.phonetic,
+        w.image,
         w.user_id,
         u.name as user_name,
         w.created_at
@@ -465,6 +473,7 @@ export async function getWordById(id: number): Promise<Word | undefined> {
     id: row.id as number,
     word: row.word as string,
     phonetic: row.phonetic as string | null,
+    image: row.image as string | null,
     user_id: row.user_id as number | null,
     user_name: row.user_name as string | null,
     created_at: row.created_at as string,
@@ -486,14 +495,16 @@ export async function updateWord(
   id: number,
   word: string,
   phonetic: string | null,
+  image: string | null,
   definitions: { definition: string; source: string }[],
   etymologies: string[],
   synonyms: string[],
   antonyms: string[]
 ): Promise<boolean> {
+  const sortKey = getVietnameseSortKey(word);
   await client.execute({
-    sql: 'UPDATE words SET word = ?, phonetic = ? WHERE id = ?',
-    args: [word, phonetic, id]
+    sql: 'UPDATE words SET word = ?, phonetic = ?, image = ?, sort_key = ? WHERE id = ?',
+    args: [word, phonetic, image, sortKey, id]
   });
 
   // Clear existing data
@@ -617,6 +628,54 @@ export async function createUser(email: string, passwordHash: string, name: stri
     sql: 'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
     args: [email, passwordHash, name]
   });
+}
+
+
+// --- History ---
+
+export async function addToHistory(
+  userId: number,
+  type: 'SEARCH' | 'VIEW',
+  data: { wordId?: number; query?: string }
+): Promise<void> {
+  const { wordId, query } = data;
+
+  await client.execute({
+    sql: 'INSERT INTO history (user_id, type, word_id, query) VALUES (?, ?, ?, ?)',
+    args: [userId, type, wordId || null, query || null]
+  });
+}
+
+export async function getHistory(userId: number, type?: 'SEARCH' | 'VIEW'): Promise<any[]> {
+  let sql = `
+    SELECT h.*, w.word as word_text 
+    FROM history h
+    LEFT JOIN words w ON h.word_id = w.id
+    WHERE h.user_id = ?
+  `;
+  const args: any[] = [userId];
+
+  if (type) {
+    sql += ' AND h.type = ?';
+    args.push(type);
+  }
+
+  sql += ' ORDER BY h.created_at DESC LIMIT 50';
+
+  const result = await client.execute({ sql, args });
+  return result.rows;
+}
+
+export async function clearHistory(userId: number, type?: 'SEARCH' | 'VIEW'): Promise<void> {
+  let sql = 'DELETE FROM history WHERE user_id = ?';
+  const args: any[] = [userId];
+
+  if (type) {
+    sql += ' AND type = ?';
+    args.push(type);
+  }
+
+  await client.execute({ sql, args });
 }
 
 export { client };

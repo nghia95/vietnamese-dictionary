@@ -44,7 +44,7 @@ export default function Home() {
       <section className={styles.hero}>
         <div className="container">
           <h1 className={`${styles.heroTitle} animate-fade-in`}>
-            Từ Điển Việt
+            Từ điển tiếng Việt
           </h1>
           <p className={`${styles.heroSubtitle} animate-fade-in`}>
             Khám phá và học tiếng Việt một cách hiện đại
@@ -58,6 +58,15 @@ export default function Home() {
                 placeholder="Tìm kiếm từ vựng tiếng Việt..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && session?.user && searchQuery.trim()) {
+                    fetch('/api/history', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ type: 'SEARCH', query: searchQuery.trim() })
+                    }).catch(console.error);
+                  }
+                }}
                 className={styles.searchInput}
               />
             </div>
@@ -74,11 +83,11 @@ export default function Home() {
             </div>
           ) : words.length > 0 ? (
             <>
-              <h2 className={styles.resultsTitle}>
-                {searchQuery
-                  ? `Kết quả cho "${searchQuery}" (${words.length})`
-                  : `Tất cả từ vựng (${words.length})`}
-              </h2>
+              {searchQuery && (
+                <h2 className={styles.resultsTitle}>
+                  Kết quả cho "{searchQuery}" ({words.length})
+                </h2>
+              )}
               <div className={styles.wordsGrid}>
                 {words.map((word) => (
                   <WordCard

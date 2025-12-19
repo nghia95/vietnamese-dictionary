@@ -12,7 +12,7 @@ export default function Header() {
             <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
                 <Link href="/" className={styles.logo}>
                     <span className={styles.logoIcon}>📖</span>
-                    Từ Điển Việt
+                    Từ điển tiếng Việt
                 </Link>
 
                 <nav className={styles.nav}>
@@ -20,7 +20,12 @@ export default function Header() {
                         <div style={{ width: '100px', height: '36px' }}></div>
                     ) : session ? (
                         <>
-                            <span className={styles.userName}>Xin chào, {session.user?.name}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <span className={styles.userName}>Xin chào, {session.user?.name}</span>
+                                <Link href="/history" style={{ fontSize: '0.9rem', color: 'var(--accent-blue)', textDecoration: 'none' }}>
+                                    🕒 Lịch sử
+                                </Link>
+                            </div>
                             {(session.user?.role === 'admin' || session.user?.role === 'moderator') && (
                                 <>
                                     <Link href="/add-word" className="btn btn-primary">

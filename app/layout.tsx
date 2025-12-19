@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 const lexend = Lexend({ subsets: ['latin', 'vietnamese'] });
 
 export const metadata: Metadata = {
-  title: 'Từ Điển Việt - Vietnamese Dictionary',
+  title: 'Từ điển tiếng Việt - Vietnamese Dictionary',
   description: 'A modern Vietnamese dictionary for looking up words and learning Vietnamese',
 };
 

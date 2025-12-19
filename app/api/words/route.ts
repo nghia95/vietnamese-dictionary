@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { word, phonetic, definitions, etymologies, synonyms, antonyms } = await request.json();
+        const { word, phonetic, image, definitions, etymologies, synonyms, antonyms } = await request.json();
 
         // Validate input
         if (!word || !definitions || !Array.isArray(definitions) || definitions.length === 0) {
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         await addWordWithDefinitions(
             word,
             phonetic || null,
+            image || null,
             definitions,
             etymologies || [],
             synonyms || [],

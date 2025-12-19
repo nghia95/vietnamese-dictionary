@@ -84,11 +84,13 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
     const WordContent = () => (
         <>
             <div className={styles.wordHeader}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: '1rem', flexWrap: 'wrap' }}>
-                    <h3 className={styles.wordTitle}>{word.word}</h3>
-                    {word.phonetic && (
-                        <span className={styles.phonetic}>/{word.phonetic}/</span>
-                    )}
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', flexWrap: 'wrap' }}>
+                        <h3 className={styles.wordTitle}>{word.word}</h3>
+                        {word.phonetic && (
+                            <span className={styles.phonetic}>/{word.phonetic}/</span>
+                        )}
+                    </div>
                 </div>
 
                 {isLoggedIn && (
@@ -103,11 +105,31 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                     </a>
                 )}
                 {!isExpanded && (
-                    <button className={styles.expandButton} onClick={() => setIsExpanded(true)} title="Xem toàn màn hình">
+                    <button className={styles.expandButton} onClick={() => {
+                        setIsExpanded(true);
+                        // Log view history
+                        if (isLoggedIn) {
+                            fetch('/api/history', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'VIEW', wordId: word.id })
+                            }).catch(console.error);
+                        }
+                    }} title="Xem toàn màn hình">
                         ⤢ Mở rộng
                     </button>
                 )}
             </div>
+
+            {isExpanded && word.image && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <img
+                        src={word.image}
+                        alt={`Minh họa cho ${word.word}`}
+                        style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', display: 'block' }}
+                    />
+                </div>
+            )}
 
             <div className={styles.definitionsList}>
                 <h4 className={styles.sectionTitle}>Định nghĩa</h4>
@@ -126,7 +148,9 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                                 {shownDefs.map((def, index) => (
                                     <div key={def.id} className={styles.definitionItem} style={{ marginLeft: '1rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '0.8rem' }}>
                                         <div className={styles.definitionText}>
-                                            <span className={styles.definitionNumber} style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>{index + 1}.</span>
+                                            {definitions.length > 1 && (
+                                                <span className={styles.definitionNumber} style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>{index + 1}.</span>
+                                            )}
                                             {def.definition}
                                         </div>
                                     </div>
@@ -198,7 +222,16 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
             </div>
 
             {showSeeMore && (
-                <button className={styles.seeMoreButton} onClick={() => setIsExpanded(true)}>
+                <button className={styles.seeMoreButton} onClick={() => {
+                    setIsExpanded(true);
+                    if (isLoggedIn) {
+                        fetch('/api/history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'VIEW', wordId: word.id })
+                        }).catch(console.error);
+                    }
+                }}>
                     Xem chi tiết ({groupedDefinitions.length} nguồn, {word.definitions.length} nghĩa)
                 </button>
             )}

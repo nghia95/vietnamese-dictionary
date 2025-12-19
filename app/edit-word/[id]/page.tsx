@@ -42,6 +42,7 @@ export default function EditWordPage({ params }: { params: Promise<{ id: string 
                     setWord({
                         word: fetchedWord.word,
                         phonetic: fetchedWord.phonetic || '',
+                        image: fetchedWord.image || '',
                         definitions: fetchedWord.definitions.map(d => ({ definition: d.definition, source: d.source })),
                         etymologies: fetchedWord.etymologies,
                         synonyms: fetchedWord.synonyms.join(', '),
@@ -84,6 +85,7 @@ export default function EditWordPage({ params }: { params: Promise<{ id: string 
                 body: JSON.stringify({
                     word: data.word,
                     phonetic: data.phonetic || null,
+                    image: data.image || null,
                     definitions: validDefinitions,
                     etymologies: data.etymologies,
                     synonyms: data.synonyms ? data.synonyms.split(',').map(s => s.trim()).filter(s => s !== '') : [],

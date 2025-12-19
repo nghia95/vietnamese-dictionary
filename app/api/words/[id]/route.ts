@@ -53,7 +53,7 @@ export async function PUT(
 
 
         const body = await request.json();
-        const { word, phonetic, definitions, etymologies, synonyms, antonyms } = body;
+        const { word, phonetic, image, definitions, etymologies, synonyms, antonyms } = body;
 
         // Validation
         if (!word || !definitions || !Array.isArray(definitions) || definitions.length === 0) {
@@ -67,6 +67,7 @@ export async function PUT(
             wordId,
             word,
             phonetic || null,
+            image || null,
             definitions,
             etymologies || [],
             synonyms || [],

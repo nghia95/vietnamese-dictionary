@@ -11,6 +11,7 @@ export interface Word {
   id: number;
   word: string;
   phonetic: string | null;
+  image: string | null;
   user_id: number | null;
   user_name: string | null;
   created_at: string;
@@ -30,6 +31,7 @@ export interface User {
 export interface WordInput {
   word: string;
   phonetic?: string;
+  image?: string;
   definitions: {
     definition: string;
     source: string;

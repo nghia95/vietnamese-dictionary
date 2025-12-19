@@ -36,6 +36,7 @@ export default function AddWordPage() {
                 body: JSON.stringify({
                     word: data.word,
                     phonetic: data.phonetic || null,
+                    image: data.image || null,
                     definitions: validDefinitions,
                     etymologies: data.etymologies,
                     synonyms: data.synonyms ? data.synonyms.split(',').map(s => s.trim()).filter(s => s !== '') : [],

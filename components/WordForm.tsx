@@ -11,6 +11,7 @@ export interface DefinitionInput {
 export interface WordData {
     word: string;
     phonetic: string;
+    image: string;
     definitions: DefinitionInput[];
     etymologies: string[];
     synonyms: string;
@@ -46,6 +47,7 @@ export default function WordForm({
 }: WordFormProps) {
     const [word, setWord] = useState('');
     const [phonetic, setPhonetic] = useState('');
+    const [image, setImage] = useState('');
     // Grouped state
     const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([
         { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] }
@@ -76,6 +78,7 @@ export default function WordForm({
         if (initialData) {
             setWord(initialData.word);
             setPhonetic(initialData.phonetic);
+            setImage(initialData.image || '');
 
             // Reconstruct source groups from flat definitions
             const groups: SourceGroup[] = [];
@@ -169,6 +172,23 @@ export default function WordForm({
         }
     };
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                alert('File ảnh quá lớn (giới hạn 5MB)');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setImage(base64String);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -194,6 +214,7 @@ export default function WordForm({
         onSubmit({
             word,
             phonetic,
+            image,
             definitions: flatDefinitions,
             etymologies: etymologies.filter(e => e.trim() !== ''),
             synonyms,
@@ -235,6 +256,47 @@ export default function WordForm({
                         onChange={(e) => setPhonetic(e.target.value)}
                         placeholder="Ví dụ: sin chào"
                     />
+                </div>
+
+
+
+
+
+                <div className="form-group">
+                    <label>Hình ảnh minh họa</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* URL Input */}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>Dán đường dẫn ảnh (URL):</label>
+                            <input
+                                type="url"
+                                value={image}
+                                onChange={(e) => setImage(e.target.value)}
+                                placeholder="https://example.com/image.jpg"
+                            />
+                        </div>
+
+                        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9em' }}>
+                            - HOẶC -
+                        </div>
+
+                        {/* File Upload */}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>Tải ảnh từ máy tính:</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                style={{ fontSize: '0.9em' }}
+                            />
+                        </div>
+                    </div>
+                    {image && (
+                        <div style={{ marginTop: '10px' }}>
+                            <p style={{ fontSize: '0.8em', color: 'var(--text-muted)', marginBottom: '5px' }}>Xem trước:</p>
+                            <img src={image} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd' }} />
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.definitionsSection}>
@@ -409,7 +471,7 @@ export default function WordForm({
                         {isLoading ? <span className="loading"></span> : submitLabel}
                     </button>
                 </div>
-            </form>
+            </form >
 
             {contributorName && (
                 <div className={styles.contributorInfo}>
@@ -418,7 +480,8 @@ export default function WordForm({
                         Từ này sẽ được ghi nhận với tên <strong>{contributorName}</strong>
                     </p>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }
