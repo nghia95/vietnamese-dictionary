@@ -22,7 +22,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
         }
 
-        updateUserRole(userId, role);
+        await updateUserRole(userId, role);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Update role error:', error);

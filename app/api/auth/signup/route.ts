@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if user already exists
-        const existingUser = getUserByEmail(email);
+        const existingUser = await getUserByEmail(email);
         if (existingUser) {
             return NextResponse.json(
                 { error: 'User already exists' },
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         const passwordHash = await bcrypt.hash(password, 10);
 
         // Create user
-        createUser(email, passwordHash, name);
+        await createUser(email, passwordHash, name);
 
         return NextResponse.json(
             { message: 'User created successfully' },

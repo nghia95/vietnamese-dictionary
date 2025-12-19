@@ -10,7 +10,7 @@ async function seed() {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-        createUser(email, hashedPassword, name);
+        await createUser(email, hashedPassword, name);
         console.log(`✅ User ${email} created successfully.`);
     } catch (error) {
         console.error('Error creating user:', error);

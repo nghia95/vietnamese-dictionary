@@ -21,7 +21,7 @@ export const authConfig: NextAuthConfig = {
 
                 // Import db only in Node.js runtime
                 const { getUserByEmail } = await import('@/lib/db');
-                const user = getUserByEmail(credentials.email as string);
+                const user = await getUserByEmail(credentials.email as string);
 
                 if (!user) {
                     return null;

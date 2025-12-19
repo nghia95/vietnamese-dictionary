@@ -1,145 +1,54 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { createClient, type Client } from '@libsql/client';
 import { Word, Definition } from '@/types';
 
-const dbPath = path.join(process.cwd(), 'dictionary.db');
-const db = new Database(dbPath);
-
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+// Create Turso/LibSQL client
+const client: Client = createClient({
+  url: process.env.TURSO_DATABASE_URL || 'file:dictionary.db',
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
 // Initialize database tables
-export function initializeDatabase() {
+export async function initializeDatabase() {
   // Create users table
-  db.exec(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      banned_until DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Check if we need to migrate from old schema
-  const oldSchemaCheck = db.prepare(`
-    SELECT COUNT(*) as count 
-    FROM pragma_table_info('words') 
-    WHERE name = 'definition'
-  `).get() as { count: number };
+  // Create words table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS words (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word TEXT NOT NULL,
+      phonetic TEXT,
+      user_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
 
-  const needsMigration = oldSchemaCheck.count > 0;
-
-  if (needsMigration) {
-    console.log('🔄 Migrating database schema to support multiple definitions...');
-
-    // Create new definitions table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS definitions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        word_id INTEGER NOT NULL,
-        definition TEXT NOT NULL,
-        source TEXT NOT NULL DEFAULT 'Community',
-        "order" INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
-      )
-    `);
-
-    // Migrate existing definitions to new table
-    db.exec(`
-      INSERT INTO definitions (word_id, definition, source, "order")
-      SELECT id, definition, 'Community', 0
-      FROM words
-      WHERE definition IS NOT NULL AND definition != ''
-    `);
-
-    // Create new words table without definition column
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS words_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        word TEXT NOT NULL,
-        phonetic TEXT,
-        user_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    `);
-
-    // Copy data to new table
-    db.exec(`
-      INSERT INTO words_new (id, word, phonetic, user_id, created_at)
-      SELECT id, word, phonetic, user_id, created_at
-      FROM words
-    `);
-
-    // Drop old table and rename new one
-    db.exec(`DROP TABLE words`);
-    db.exec(`ALTER TABLE words_new RENAME TO words`);
-
-    console.log('✅ Migration completed successfully!');
-  } else {
-    // Create words table (new schema)
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS words (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        word TEXT NOT NULL,
-        phonetic TEXT,
-        user_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    `);
-
-    // Create definitions table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS definitions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        word_id INTEGER NOT NULL,
-        definition TEXT NOT NULL,
-        source TEXT NOT NULL DEFAULT 'Community',
-        "order" INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
-      )
-    `);
-  }
-
-  // Check if we need to migrate users table for roles
-  try {
-    const userColumns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
-    const hasRoleColumn = userColumns.some(col => col.name === 'role');
-
-    if (!hasRoleColumn) {
-      console.log('🔄 Migrating users table to support roles...');
-      db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`);
-      console.log('✅ User role migration completed!');
-    }
-
-    // Set admin user
-    const adminEmail = 'nghiahcmut95@gmail.com';
-    const adminUser = db.prepare('SELECT * FROM users WHERE email = ?').get(adminEmail);
-    if (adminUser) {
-      db.prepare('UPDATE users SET role = ? WHERE email = ?').run('admin', adminEmail);
-      console.log(`✅ Set ${adminEmail} as ADMIN`);
-    }
-
-    // Check if we need to migrate users table for banned_until
-    const userColumns2 = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
-    const hasBannedColumn = userColumns2.some(col => col.name === 'banned_until');
-
-    if (!hasBannedColumn) {
-      console.log('🔄 Migrating users table to support bans...');
-      db.exec(`ALTER TABLE users ADD COLUMN banned_until DATETIME`);
-      console.log('✅ User ban migration completed!');
-    }
-
-  } catch (error) {
-    console.error('Migration error:', error);
-  }
+  // Create definitions table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS definitions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER NOT NULL,
+      definition TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'Community',
+      "order" INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    )
+  `);
 
   // Create etymologies table
-  db.exec(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS etymologies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       word_id INTEGER NOT NULL,
@@ -150,148 +59,142 @@ export function initializeDatabase() {
   `);
 
   // Create related_words table
-  db.exec(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS related_words (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       word_id INTEGER NOT NULL,
       word TEXT NOT NULL,
-      type TEXT NOT NULL, -- 'synonym' or 'antonym'
+      type TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
     )
   `);
 
-  // Create index for faster word searches
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_words_word ON words(word COLLATE NOCASE)
-  `);
+  // Create indexes
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_words_word ON words(word COLLATE NOCASE)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_definitions_word_id ON definitions(word_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_etymologies_word_id ON etymologies(word_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_related_words_word_id ON related_words(word_id)`);
 
-  // Create index for definitions
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_definitions_word_id ON definitions(word_id)
-  `);
-
-  // Create index for etymologies
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_etymologies_word_id ON etymologies(word_id)
-  `);
-
-  // Create index for related_words
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_related_words_word_id ON related_words(word_id)
-  `);
-
-  // Seed initial data if tables are empty
-  const wordCount = db.prepare('SELECT COUNT(*) as count FROM words').get() as { count: number };
-
-  if (wordCount.count === 0) {
-    const seedWords = [
-      {
-        word: 'xin chào', phonetic: 'sin chào',
-        definitions: [{ definition: 'A greeting used to say hello or hi', source: 'Common Usage' }]
-      },
-      {
-        word: 'cảm ơn', phonetic: 'gảm ơn',
-        definitions: [{ definition: 'Thank you; expression of gratitude', source: 'Common Usage' }]
-      },
-      {
-        word: 'tạm biệt', phonetic: 'dạm biệt',
-        definitions: [{ definition: 'Goodbye; farewell', source: 'Common Usage' }]
-      },
-      {
-        word: 'đẹp', phonetic: 'đép',
-        definitions: [{ definition: 'Beautiful; pretty; attractive', source: 'Common Usage' }]
-      },
-      {
-        word: 'yêu', phonetic: 'iêu',
-        definitions: [{ definition: 'To love; affection', source: 'Common Usage' }]
-      },
-      {
-        word: 'gia đình', phonetic: 'za đình',
-        definitions: [{ definition: 'Family', source: 'Common Usage' }]
-      },
-      {
-        word: 'bạn', phonetic: 'bạn',
-        definitions: [{ definition: 'Friend', source: 'Common Usage' }]
-      },
-      {
-        word: 'sách', phonetic: 'sák',
-        definitions: [{ definition: 'Book', source: 'Common Usage' }]
-      },
-      {
-        word: 'học', phonetic: 'hók',
-        definitions: [{ definition: 'To study; to learn', source: 'Common Usage' }]
-      },
-      {
-        word: 'ăn', phonetic: 'an',
-        definitions: [{ definition: 'To eat', source: 'Common Usage' }]
-      },
-    ];
-
-    const insertWord = db.prepare('INSERT INTO words (word, phonetic) VALUES (?, ?)');
-    const insertDefinition = db.prepare('INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)');
-
-    const insertMany = db.transaction((words: typeof seedWords) => {
-      for (const word of words) {
-        const result = insertWord.run(word.word, word.phonetic);
-        const wordId = result.lastInsertRowid as number;
-
-        word.definitions.forEach((def, index) => {
-          insertDefinition.run(wordId, def.definition, def.source, index);
-        });
-      }
+  // Set admin user
+  const adminEmail = 'nghiahcmut95@gmail.com';
+  const adminUser = await client.execute({
+    sql: 'SELECT * FROM users WHERE email = ?',
+    args: [adminEmail]
+  });
+  if (adminUser.rows.length > 0) {
+    await client.execute({
+      sql: 'UPDATE users SET role = ? WHERE email = ?',
+      args: ['admin', adminEmail]
     });
-    insertMany(seedWords);
+    console.log(`✅ Set ${adminEmail} as ADMIN`);
   }
 }
 
-// Initialize database on module load
-initializeDatabase();
-
 // Database query functions
-export function searchWords(query: string): Word[] {
-  const stmt = db.prepare(`
-    SELECT 
-      w.id,
-      w.word,
-      w.phonetic,
-      w.user_id,
-      u.name as user_name,
-      w.created_at
-    FROM words w
-    LEFT JOIN users u ON w.user_id = u.id
-    WHERE w.word LIKE ? COLLATE NOCASE
-    ORDER BY w.word
-  `);
+export async function searchWords(query: string): Promise<Word[]> {
+  const result = await client.execute({
+    sql: `
+      SELECT 
+        w.id,
+        w.word,
+        w.phonetic,
+        w.user_id,
+        u.name as user_name,
+        w.created_at
+      FROM words w
+      LEFT JOIN users u ON w.user_id = u.id
+      WHERE w.word LIKE ? COLLATE NOCASE
+      ORDER BY w.word
+      LIMIT 50
+    `,
+    args: [`%${query}%`]
+  });
 
-  const words = stmt.all(`%${query}%`) as Word[];
-
-  // Fetch definitions for each word
-  const defStmt = db.prepare(`
-    SELECT id, word_id, definition, source, "order", created_at
-    FROM definitions
-    WHERE word_id = ?
-    ORDER BY "order"
-  `);
-
-  const etymologyStmt = db.prepare(`
-    SELECT etymology FROM etymologies WHERE word_id = ?
-  `);
-
-  const relatedWordStmt = db.prepare(`
-    SELECT word FROM related_words WHERE word_id = ? AND type = ?
-  `);
-
-  return words.map(word => ({
-    ...word,
-    definitions: defStmt.all(word.id) as Definition[],
-    etymologies: (etymologyStmt.all(word.id) as { etymology: string }[]).map(e => e.etymology),
-    synonyms: (relatedWordStmt.all(word.id, 'synonym') as { word: string }[]).map(r => r.word),
-    antonyms: (relatedWordStmt.all(word.id, 'antonym') as { word: string }[]).map(r => r.word),
+  const words: Word[] = result.rows.map(row => ({
+    id: row.id as number,
+    word: row.word as string,
+    phonetic: row.phonetic as string | null,
+    user_id: row.user_id as number | null,
+    user_name: row.user_name as string | null,
+    created_at: row.created_at as string,
+    definitions: [],
+    etymologies: [],
+    synonyms: [],
+    antonyms: []
   }));
+
+  if (words.length === 0) return [];
+
+  const wordIds = words.map(w => w.id);
+  const placeholders = wordIds.map(() => '?').join(',');
+
+  // Fetch definitions
+  const defResult = await client.execute({
+    sql: `SELECT id, word_id, definition, source, "order", created_at FROM definitions WHERE word_id IN (${placeholders}) ORDER BY "order"`,
+    args: wordIds
+  });
+
+  // Fetch etymologies
+  const etymResult = await client.execute({
+    sql: `SELECT word_id, etymology FROM etymologies WHERE word_id IN (${placeholders})`,
+    args: wordIds
+  });
+
+  // Fetch synonyms
+  const synResult = await client.execute({
+    sql: `SELECT word_id, word FROM related_words WHERE word_id IN (${placeholders}) AND type = 'synonym'`,
+    args: wordIds
+  });
+
+  // Fetch antonyms
+  const antResult = await client.execute({
+    sql: `SELECT word_id, word FROM related_words WHERE word_id IN (${placeholders}) AND type = 'antonym'`,
+    args: wordIds
+  });
+
+  // Map results back to words
+  const wordMap = new Map(words.map(w => [w.id, w]));
+
+  for (const row of defResult.rows) {
+    const word = wordMap.get(row.word_id as number);
+    if (word) {
+      word.definitions.push({
+        id: row.id as number,
+        word_id: row.word_id as number,
+        definition: row.definition as string,
+        source: row.source as string,
+        order: row.order as number,
+        created_at: row.created_at as string
+      });
+    }
+  }
+
+  for (const row of etymResult.rows) {
+    const word = wordMap.get(row.word_id as number);
+    if (word) {
+      word.etymologies.push(row.etymology as string);
+    }
+  }
+
+  for (const row of synResult.rows) {
+    const word = wordMap.get(row.word_id as number);
+    if (word) {
+      word.synonyms.push(row.word as string);
+    }
+  }
+
+  for (const row of antResult.rows) {
+    const word = wordMap.get(row.word_id as number);
+    if (word) {
+      word.antonyms.push(row.word as string);
+    }
+  }
+
+  return words;
 }
 
-export function addWordWithDefinitions(
+export async function addWordWithDefinitions(
   word: string,
   phonetic: string | null,
   definitions: { definition: string; source: string }[],
@@ -299,80 +202,111 @@ export function addWordWithDefinitions(
   synonyms: string[],
   antonyms: string[],
   userId: number | null
-) {
-  const insertWord = db.prepare('INSERT INTO words (word, phonetic, user_id) VALUES (?, ?, ?)');
-  const insertDefinition = db.prepare('INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)');
-  const insertEtymology = db.prepare('INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)');
-  const insertRelatedWord = db.prepare('INSERT INTO related_words (word_id, word, type) VALUES (?, ?, ?)');
-
-  const transaction = db.transaction(() => {
-    const result = insertWord.run(word, phonetic, userId);
-    const wordId = result.lastInsertRowid as number;
-
-    definitions.forEach((def, index) => {
-      insertDefinition.run(wordId, def.definition, def.source, index);
-    });
-
-    etymologies.forEach(etymology => {
-      insertEtymology.run(wordId, etymology);
-    });
-
-    synonyms.forEach(synonym => {
-      insertRelatedWord.run(wordId, synonym, 'synonym');
-    });
-
-    antonyms.forEach(antonym => {
-      insertRelatedWord.run(wordId, antonym, 'antonym');
-    });
-
-    return wordId;
+): Promise<number> {
+  const result = await client.execute({
+    sql: 'INSERT INTO words (word, phonetic, user_id) VALUES (?, ?, ?)',
+    args: [word, phonetic, userId]
   });
 
-  return transaction();
+  const wordId = Number(result.lastInsertRowid);
+
+  for (let i = 0; i < definitions.length; i++) {
+    await client.execute({
+      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
+      args: [wordId, definitions[i].definition, definitions[i].source, i]
+    });
+  }
+
+  for (const etymology of etymologies) {
+    await client.execute({
+      sql: 'INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)',
+      args: [wordId, etymology]
+    });
+  }
+
+  for (const synonym of synonyms) {
+    await client.execute({
+      sql: "INSERT INTO related_words (word_id, word, type) VALUES (?, ?, 'synonym')",
+      args: [wordId, synonym]
+    });
+  }
+
+  for (const antonym of antonyms) {
+    await client.execute({
+      sql: "INSERT INTO related_words (word_id, word, type) VALUES (?, ?, 'antonym')",
+      args: [wordId, antonym]
+    });
+  }
+
+  return wordId;
 }
 
-export function getWordById(id: number): Word | undefined {
-  const stmt = db.prepare(`
-    SELECT 
-      w.id,
-      w.word,
-      w.phonetic,
-      w.user_id,
-      u.name as user_name,
-      w.created_at
-    FROM words w
-    LEFT JOIN users u ON w.user_id = u.id
-    WHERE w.id = ?
-  `);
+export async function getWordById(id: number): Promise<Word | undefined> {
+  const result = await client.execute({
+    sql: `
+      SELECT 
+        w.id,
+        w.word,
+        w.phonetic,
+        w.user_id,
+        u.name as user_name,
+        w.created_at
+      FROM words w
+      LEFT JOIN users u ON w.user_id = u.id
+      WHERE w.id = ?
+    `,
+    args: [id]
+  });
 
-  const word = stmt.get(id) as Word | undefined;
-  if (!word) return undefined;
+  if (result.rows.length === 0) return undefined;
+  const row = result.rows[0];
 
-  const defStmt = db.prepare(`
-    SELECT id, word_id, definition, source, "order", created_at
-    FROM definitions
-    WHERE word_id = ?
-    ORDER BY "order"
-  `);
+  // Fetch definitions
+  const defResult = await client.execute({
+    sql: `SELECT id, word_id, definition, source, "order", created_at FROM definitions WHERE word_id = ? ORDER BY "order"`,
+    args: [id]
+  });
 
-  const etymologyStmt = db.prepare(`
-    SELECT etymology FROM etymologies WHERE word_id = ?
-  `);
+  // Fetch etymologies
+  const etymResult = await client.execute({
+    sql: 'SELECT etymology FROM etymologies WHERE word_id = ?',
+    args: [id]
+  });
 
-  const relatedWordStmt = db.prepare(`
-    SELECT word FROM related_words WHERE word_id = ? AND type = ?
-  `);
+  // Fetch synonyms
+  const synResult = await client.execute({
+    sql: "SELECT word FROM related_words WHERE word_id = ? AND type = 'synonym'",
+    args: [id]
+  });
+
+  // Fetch antonyms
+  const antResult = await client.execute({
+    sql: "SELECT word FROM related_words WHERE word_id = ? AND type = 'antonym'",
+    args: [id]
+  });
 
   return {
-    ...word,
-    definitions: defStmt.all(word.id) as Definition[],
-    etymologies: (etymologyStmt.all(word.id) as { etymology: string }[]).map(e => e.etymology),
-    synonyms: (relatedWordStmt.all(word.id, 'synonym') as { word: string }[]).map(r => r.word),
-    antonyms: (relatedWordStmt.all(word.id, 'antonym') as { word: string }[]).map(r => r.word),
+    id: row.id as number,
+    word: row.word as string,
+    phonetic: row.phonetic as string | null,
+    user_id: row.user_id as number | null,
+    user_name: row.user_name as string | null,
+    created_at: row.created_at as string,
+    definitions: defResult.rows.map(d => ({
+      id: d.id as number,
+      word_id: d.word_id as number,
+      definition: d.definition as string,
+      source: d.source as string,
+      order: d.order as number,
+      created_at: d.created_at as string
+    })),
+    etymologies: etymResult.rows.map(e => e.etymology as string),
+    synonyms: synResult.rows.map(s => s.word as string),
+    antonyms: antResult.rows.map(a => a.word as string)
   };
 }
 
-export function updateWord(
+export async function updateWord(
   id: number,
   word: string,
   phonetic: string | null,
@@ -380,74 +314,108 @@ export function updateWord(
   etymologies: string[],
   synonyms: string[],
   antonyms: string[]
-): boolean {
-  const updateWordStmt = db.prepare('UPDATE words SET word = ?, phonetic = ? WHERE id = ?');
-  const deleteDefinitionsStmt = db.prepare('DELETE FROM definitions WHERE word_id = ?');
-  const deleteEtymologiesStmt = db.prepare('DELETE FROM etymologies WHERE word_id = ?');
-  const deleteRelatedWordsStmt = db.prepare('DELETE FROM related_words WHERE word_id = ?');
-
-  const insertDefinition = db.prepare('INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)');
-  const insertEtymology = db.prepare('INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)');
-  const insertRelatedWord = db.prepare('INSERT INTO related_words (word_id, word, type) VALUES (?, ?, ?)');
-
-  const transaction = db.transaction(() => {
-    updateWordStmt.run(word, phonetic, id);
-
-    // Clear existing data
-    deleteDefinitionsStmt.run(id);
-    deleteEtymologiesStmt.run(id);
-    deleteRelatedWordsStmt.run(id);
-
-    // Insert new data
-    definitions.forEach((def, index) => {
-      insertDefinition.run(id, def.definition, def.source, index);
-    });
-
-    etymologies.forEach(etymology => {
-      insertEtymology.run(id, etymology);
-    });
-
-    synonyms.forEach(synonym => {
-      insertRelatedWord.run(id, synonym, 'synonym');
-    });
-
-    antonyms.forEach(antonym => {
-      insertRelatedWord.run(id, antonym, 'antonym');
-    });
+): Promise<boolean> {
+  await client.execute({
+    sql: 'UPDATE words SET word = ?, phonetic = ? WHERE id = ?',
+    args: [word, phonetic, id]
   });
 
-  transaction();
+  // Clear existing data
+  await client.execute({ sql: 'DELETE FROM definitions WHERE word_id = ?', args: [id] });
+  await client.execute({ sql: 'DELETE FROM etymologies WHERE word_id = ?', args: [id] });
+  await client.execute({ sql: 'DELETE FROM related_words WHERE word_id = ?', args: [id] });
+
+  // Insert new data
+  for (let i = 0; i < definitions.length; i++) {
+    await client.execute({
+      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
+      args: [id, definitions[i].definition, definitions[i].source, i]
+    });
+  }
+
+  for (const etymology of etymologies) {
+    await client.execute({
+      sql: 'INSERT INTO etymologies (word_id, etymology) VALUES (?, ?)',
+      args: [id, etymology]
+    });
+  }
+
+  for (const synonym of synonyms) {
+    await client.execute({
+      sql: "INSERT INTO related_words (word_id, word, type) VALUES (?, ?, 'synonym')",
+      args: [id, synonym]
+    });
+  }
+
+  for (const antonym of antonyms) {
+    await client.execute({
+      sql: "INSERT INTO related_words (word_id, word, type) VALUES (?, ?, 'antonym')",
+      args: [id, antonym]
+    });
+  }
+
   return true;
 }
 
-export function getUserByEmail(email: string) {
-  const stmt = db.prepare('SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE email = ?');
-  return stmt.get(email) as { id: number; email: string; password_hash: string; name: string; role: string; banned_until: string | null; created_at: string } | undefined;
+export async function getUserByEmail(email: string) {
+  const result = await client.execute({
+    sql: 'SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE email = ?',
+    args: [email]
+  });
+
+  if (result.rows.length === 0) return undefined;
+  const row = result.rows[0];
+
+  return {
+    id: row.id as number,
+    email: row.email as string,
+    password_hash: row.password_hash as string,
+    name: row.name as string,
+    role: row.role as string,
+    banned_until: row.banned_until as string | null,
+    created_at: row.created_at as string
+  };
 }
 
-export function getAllUsers() {
-  const stmt = db.prepare('SELECT id, email, name, role, banned_until, created_at FROM users ORDER BY created_at DESC');
-  return stmt.all() as { id: number; email: string; name: string; role: string; banned_until: string | null; created_at: string }[];
+export async function getAllUsers() {
+  const result = await client.execute('SELECT id, email, name, role, banned_until, created_at FROM users ORDER BY created_at DESC');
+
+  return result.rows.map(row => ({
+    id: row.id as number,
+    email: row.email as string,
+    name: row.name as string,
+    role: row.role as string,
+    banned_until: row.banned_until as string | null,
+    created_at: row.created_at as string
+  }));
 }
 
-export function updateUserRole(id: number, role: string) {
-  const stmt = db.prepare('UPDATE users SET role = ? WHERE id = ?');
-  return stmt.run(role, id);
+export async function updateUserRole(id: number, role: string) {
+  return await client.execute({
+    sql: 'UPDATE users SET role = ? WHERE id = ?',
+    args: [role, id]
+  });
 }
 
-export function updateUserBan(id: number, bannedUntil: string | null) {
-  const stmt = db.prepare('UPDATE users SET banned_until = ? WHERE id = ?');
-  return stmt.run(bannedUntil, id);
+export async function updateUserBan(id: number, bannedUntil: string | null) {
+  return await client.execute({
+    sql: 'UPDATE users SET banned_until = ? WHERE id = ?',
+    args: [bannedUntil, id]
+  });
 }
 
-export function deleteUser(id: number) {
-  const stmt = db.prepare('DELETE FROM users WHERE id = ?');
-  return stmt.run(id);
+export async function deleteUser(id: number) {
+  return await client.execute({
+    sql: 'DELETE FROM users WHERE id = ?',
+    args: [id]
+  });
 }
 
-export function createUser(email: string, passwordHash: string, name: string) {
-  const stmt = db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)');
-  return stmt.run(email, passwordHash, name);
+export async function createUser(email: string, passwordHash: string, name: string) {
+  return await client.execute({
+    sql: 'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
+    args: [email, passwordHash, name]
+  });
 }
 
-export default db;
+export { client };

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        const users = getAllUsers();
+        const users = await getAllUsers();
         return NextResponse.json({ users });
     } catch (error) {
         console.error('Get users error:', error);

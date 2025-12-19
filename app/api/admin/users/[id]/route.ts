@@ -21,7 +21,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
         }
 
-        deleteUser(userId);
+        await deleteUser(userId);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Delete user error:', error);

@@ -19,7 +19,7 @@ export async function PATCH(
         const { bannedUntil } = await request.json();
 
         // bannedUntil can be a ISO string or null
-        updateUserBan(userId, bannedUntil);
+        await updateUserBan(userId, bannedUntil);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Update ban error:', error);

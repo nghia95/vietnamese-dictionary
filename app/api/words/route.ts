@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const query = searchParams.get('search') || '';
 
-        const words = searchWords(query);
+        const words = await searchWords(query);
 
         return NextResponse.json({ words });
     } catch (error) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
         // Add word with definitions to database
         const userId = parseInt(session.user.id as string);
-        addWordWithDefinitions(
+        await addWordWithDefinitions(
             word,
             phonetic || null,
             definitions,

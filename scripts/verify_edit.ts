@@ -8,7 +8,7 @@ async function verify() {
 
     console.log(`📝 Adding word: ${testWord}`);
 
-    addWordWithDefinitions(
+    await addWordWithDefinitions(
         testWord,
         'original-phonetic',
         [{ definition: 'Original def', source: 'Original source' }],
@@ -18,7 +18,7 @@ async function verify() {
         null // No user ID for this test
     );
 
-    const results = searchWords(testWord);
+    const results = await searchWords(testWord);
     if (results.length === 0) {
         console.error('❌ Failed to add original word');
         process.exit(1);
@@ -27,7 +27,7 @@ async function verify() {
     console.log(`✅ Word added with ID: ${wordId}`);
 
     console.log('✏️ Updating word...');
-    const success = updateWord(
+    const success = await updateWord(
         wordId,
         `${testWord}_updated`,
         'updated-phonetic',
@@ -43,7 +43,7 @@ async function verify() {
     }
 
     console.log('🔍 Verifying updates...');
-    const updatedWord = getWordById(wordId);
+    const updatedWord = await getWordById(wordId);
 
     if (!updatedWord) {
         console.error('❌ Failed to retrieve updated word');

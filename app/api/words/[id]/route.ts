@@ -16,7 +16,7 @@ export async function GET(
             return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
         }
 
-        const word = getWordById(wordId);
+        const word = await getWordById(wordId);
 
         if (!word) {
             return NextResponse.json({ error: 'Word not found' }, { status: 404 });
@@ -45,7 +45,7 @@ export async function PUT(
             return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
         }
 
-        const existingWord = getWordById(wordId);
+        const existingWord = await getWordById(wordId);
         if (!existingWord) {
             return NextResponse.json({ error: 'Word not found' }, { status: 404 });
         }
@@ -63,7 +63,7 @@ export async function PUT(
             );
         }
 
-        const success = updateWord(
+        const success = await updateWord(
             wordId,
             word,
             phonetic || null,
