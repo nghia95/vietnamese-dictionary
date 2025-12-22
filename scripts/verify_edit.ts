@@ -11,6 +11,7 @@ async function verify() {
     await addWordWithDefinitions(
         testWord,
         'original-phonetic',
+        null, // image
         [{ definition: 'Original def', source: 'Original source' }],
         ['Original etymology'],
         ['orig-syn'],
@@ -31,6 +32,7 @@ async function verify() {
         wordId,
         `${testWord}_updated`,
         'updated-phonetic',
+        null, // image
         [{ definition: 'Updated def', source: 'Updated source' }],
         ['Updated etymology'],
         ['updated-syn'],
