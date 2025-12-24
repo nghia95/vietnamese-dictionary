@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
     try {
         const session = await auth();
 
-        if (!session || !session.user || session.user.role !== 'admin') {
+        if (!session || !session.user || (session.user.role !== 'admin' && session.user.role !== 'moderator')) {
             return NextResponse.json(
-                { error: 'Unauthorized: Only admins can add words' },
+                { error: 'Unauthorized: Only admins and moderators can add words' },
                 { status: 403 }
             );
         }
