@@ -1,0 +1,277 @@
+.settingsPage {
+    min-height: calc(100vh - 80px);
+    padding: var(--spacing-xl) 0;
+    background: var(--bg-primary);
+    animation: fadeIn 0.4s ease-out;
+}
+
+.pageHeader {
+    margin-bottom: var(--spacing-xl);
+}
+
+.pageTitle {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pageSubtitle {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+
+.settingsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.settingsCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.settingsCard:hover {
+    border-color: var(--primary-green-light);
+    box-shadow: var(--shadow-md);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cardIcon {
+    font-size: 1.5rem;
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.cardBody {
+    padding: var(--spacing-lg);
+}
+
+/* Profile Section */
+.profileSection {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.avatarWrapper {
+    position: relative;
+}
+
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-green-soft) 0%, var(--accent-yellow-soft) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--primary-green);
+    border: 3px solid var(--primary-green-light);
+    box-shadow: var(--shadow-md);
+}
+
+.avatarImage {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatarUpload {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-green);
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.avatarUpload:hover {
+    background: var(--primary-violet-dark);
+    transform: scale(1.1);
+}
+
+.profileInfo {
+    flex: 1;
+}
+
+.profileInfo p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Form Styles */
+.formGroup {
+    margin-bottom: var(--spacing-md);
+}
+
+.formGroup:last-child {
+    margin-bottom: 0;
+}
+
+.formLabel {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.formInput {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.formInput:disabled {
+    background: var(--bg-secondary);
+    cursor: not-allowed;
+}
+
+.formHint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+/* Buttons */
+.cardActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.btnSave {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-green) 0%, #047857 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnSave:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.btnSave:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btnCancel {
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btnCancel:hover {
+    background: var(--bg-tertiary);
+}
+
+/* Alert Messages */
+.alert {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.alertSuccess {
+    background: var(--primary-green-soft);
+    border: 1px solid var(--primary-green);
+    color: var(--primary-violet-dark);
+}
+
+.alertError {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settingsPage {
+        padding: var(--spacing-md) 0;
+    }
+
+    .pageTitle {
+        font-size: 1.5rem;
+    }
+
+    .profileSection {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+
+    .cardActions {
+        flex-direction: column;
+    }
+
+    .btnSave,
+    .btnCancel {
+        width: 100%;
+    }
+}

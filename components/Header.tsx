@@ -22,8 +22,11 @@ export default function Header() {
                         <>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 <span className={styles.userName}>Xin chào, {session.user?.name}</span>
-                                <Link href="/history" style={{ fontSize: '0.9rem', color: 'var(--accent-blue)', textDecoration: 'none' }}>
-                                    🕒 Lịch sử
+                                <Link href="/account" style={{ fontSize: '0.9rem', color: 'var(--primary-green)', textDecoration: 'none' }}>
+                                    👤 Tài khoản
+                                </Link>
+                                <Link href="/settings" style={{ fontSize: '0.9rem', color: 'var(--primary-green)', textDecoration: 'none' }}>
+                                    ⚙️ Cài đặt
                                 </Link>
                             </div>
                             {(session.user?.role === 'admin' || session.user?.role === 'moderator') && (
