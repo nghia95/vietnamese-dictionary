@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 import styles from './settings.module.css';
 
 export default function SettingsPage() {
-    const { data: session, status, update } = useSession();
+    const { data: session, status } = useSession();
     const router = useRouter();
+    const { refreshUser } = useUser(); // Use context hook
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Avatar state
+    const [avatar, setAvatar] = useState<string | null>(null);
+    const [avatarSaving, setAvatarSaving] = useState(false);
+    const [avatarMessage, setAvatarMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     // Profile state
     const [displayName, setDisplayName] = useState('');
@@ -28,7 +36,105 @@ export default function SettingsPage() {
         if (session?.user?.name) {
             setDisplayName(session.user.name);
         }
+        // Fetch user profile including avatar
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch('/api/user/profile');
+                const data = await res.json();
+                if (data.user?.avatar) {
+                    setAvatar(data.user.avatar);
+                }
+                if (data.user?.name) {
+                    setDisplayName(data.user.name);
+                }
+            } catch (error) {
+                console.error('Failed to fetch profile', error);
+            }
+        };
+        if (session?.user) {
+            fetchProfile();
+        }
     }, [status, session, router]);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setAvatarMessage({ type: 'error', text: 'Vui lòng chọn file ảnh' });
+            return;
+        }
+
+        // Validate file size (max 500KB)
+        if (file.size > 500 * 1024) {
+            setAvatarMessage({ type: 'error', text: 'Ảnh phải nhỏ hơn 500KB' });
+            return;
+        }
+
+        setAvatarSaving(true);
+        setAvatarMessage(null);
+
+        try {
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target?.result as string;
+
+                // Upload to server
+                const res = await fetch('/api/user/avatar', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar: base64 }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    setAvatar(base64);
+                    setAvatarMessage({ type: 'success', text: 'Đã cập nhật ảnh đại diện!' });
+                    // Update user context to reflect change in header immediately
+                    await refreshUser();
+                } else {
+                    setAvatarMessage({ type: 'error', text: data.error || 'Có lỗi xảy ra' });
+                }
+                setAvatarSaving(false);
+            };
+            reader.readAsDataURL(file);
+        } catch {
+            setAvatarMessage({ type: 'error', text: 'Có lỗi xảy ra khi tải ảnh' });
+            setAvatarSaving(false);
+        }
+    };
+
+    const handleRemoveAvatar = async () => {
+        setAvatarSaving(true);
+        setAvatarMessage(null);
+
+        try {
+            const res = await fetch('/api/user/avatar', {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                setAvatar(null);
+                setAvatarMessage({ type: 'success', text: 'Đã xóa ảnh đại diện!' });
+                // Update user context to reflect change in header immediately
+                await refreshUser();
+            } else {
+                const data = await res.json();
+                setAvatarMessage({ type: 'error', text: data.error || 'Có lỗi xảy ra' });
+            }
+        } catch {
+            setAvatarMessage({ type: 'error', text: 'Có lỗi xảy ra khi xóa ảnh' });
+        } finally {
+            setAvatarSaving(false);
+        }
+    };
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,8 +152,8 @@ export default function SettingsPage() {
 
             if (res.ok) {
                 setProfileMessage({ type: 'success', text: 'Đã cập nhật thông tin thành công!' });
-                // Update session
-                await update({ name: displayName });
+                // Update user context
+                await refreshUser();
             } else {
                 setProfileMessage({ type: 'error', text: data.error || 'Có lỗi xảy ra' });
             }
@@ -133,14 +239,55 @@ export default function SettingsPage() {
                             <h2 className={styles.cardTitle}>Thông tin cá nhân</h2>
                         </div>
                         <div className={styles.cardBody}>
+                            {avatarMessage && (
+                                <div className={`${styles.alert} ${avatarMessage.type === 'success' ? styles.alertSuccess : styles.alertError
+                                    }`}>
+                                    {avatarMessage.text}
+                                </div>
+                            )}
                             <div className={styles.profileSection}>
                                 <div className={styles.avatarWrapper}>
                                     <div className={styles.avatar}>
-                                        {session.user?.name?.charAt(0).toUpperCase() || '?'}
+                                        {avatar ? (
+                                            <img src={avatar} alt="Avatar" className={styles.avatarImage} />
+                                        ) : (
+                                            session.user?.name?.charAt(0).toUpperCase() || '?'
+                                        )}
                                     </div>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                    />
+                                    <button
+                                        className={styles.avatarUpload}
+                                        onClick={handleAvatarClick}
+                                        disabled={avatarSaving}
+                                        title="Thay đổi ảnh đại diện"
+                                    >
+                                        {avatarSaving ? '...' : '📷'}
+                                    </button>
                                 </div>
                                 <div className={styles.profileInfo}>
                                     <p>Thay đổi thông tin hiển thị của bạn dưới đây.</p>
+                                    {avatar && (
+                                        <button
+                                            onClick={handleRemoveAvatar}
+                                            disabled={avatarSaving}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#dc2626',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem',
+                                                textDecoration: 'underline'
+                                            }}
+                                        >
+                                            Xóa ảnh đại diện
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -272,3 +419,4 @@ export default function SettingsPage() {
         </div>
     );
 }
+

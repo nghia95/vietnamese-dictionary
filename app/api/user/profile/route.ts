@@ -59,7 +59,7 @@ export async function GET() {
         }
 
         const result = await client.execute({
-            sql: 'SELECT id, email, name, role, created_at FROM users WHERE id = ?',
+            sql: 'SELECT id, email, name, role, avatar, created_at FROM users WHERE id = ?',
             args: [parseInt(session.user.id)]
         });
 

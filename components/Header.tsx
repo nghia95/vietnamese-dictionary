@@ -2,10 +2,28 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
+import { useUser } from '@/context/UserContext';
 import styles from './Header.module.css';
 
 export default function Header() {
     const { data: session, status } = useSession();
+    const { user } = useUser();
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const displayName = user?.name || session?.user?.name;
+    const displayAvatar = user?.avatar;
 
     return (
         <header className={styles.header}>
@@ -20,15 +38,55 @@ export default function Header() {
                         <div style={{ width: '100px', height: '36px' }}></div>
                     ) : session ? (
                         <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <span className={styles.userName}>Xin chào, {session.user?.name}</span>
-                                <Link href="/account" style={{ fontSize: '0.9rem', color: 'var(--primary-green)', textDecoration: 'none' }}>
-                                    👤 Tài khoản
-                                </Link>
-                                <Link href="/settings" style={{ fontSize: '0.9rem', color: 'var(--primary-green)', textDecoration: 'none' }}>
-                                    ⚙️ Cài đặt
-                                </Link>
+                            <div className={styles.dropdownContainer} ref={dropdownRef}>
+                                <button
+                                    className={`${styles.dropdownToggle} ${isDropdownOpen ? styles.active : ''}`}
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                >
+                                    {displayAvatar ? (
+                                        <img src={displayAvatar} alt="" className={styles.headerAvatar} />
+                                    ) : (
+                                        <span>👤</span>
+                                    )}
+                                    <span className={styles.userName}>{displayName}</span>
+                                    <span style={{ fontSize: '0.8em' }}>▼</span>
+                                </button>
+
+                                {isDropdownOpen && (
+                                    <div className={styles.dropdownMenu}>
+                                        <Link
+                                            href="/account"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            👤 Tài khoản
+                                        </Link>
+                                        <Link
+                                            href="/account/history"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            🕒 Lịch sử
+                                        </Link>
+                                        <Link
+                                            href="/settings"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            ⚙️ Cài đặt
+                                        </Link>
+                                        <div className={styles.dropdownDivider}></div>
+                                        <button
+                                            onClick={() => signOut()}
+                                            className={styles.dropdownItem}
+                                            style={{ color: '#ef4444' }}
+                                        >
+                                            🚪 Đăng xuất
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+
                             {(session.user?.role === 'admin' || session.user?.role === 'moderator') && (
                                 <>
                                     <Link href="/add-word" className="btn btn-primary">
@@ -42,9 +100,6 @@ export default function Header() {
                                     </Link>
                                 </>
                             )}
-                            <button onClick={() => signOut()} className="btn btn-ghost">
-                                Đăng xuất
-                            </button>
                         </>
                     ) : (
                         <>

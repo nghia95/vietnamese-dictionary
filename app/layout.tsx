@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   description: 'A modern Vietnamese dictionary for looking up words and learning Vietnamese',
 };
 
+import { UserProvider } from '@/context/UserContext';
+
+// ... imports
+
 export default function RootLayout({
   children,
 }: {
@@ -20,10 +24,12 @@ export default function RootLayout({
     <html lang="vi">
       <body className={lexend.className}>
         <SessionProvider>
-          <Header />
-          <main style={{ minHeight: 'calc(100vh - 80px)' }}>
-            {children}
-          </main>
+          <UserProvider>
+            <Header />
+            <main style={{ minHeight: 'calc(100vh - 80px)' }}>
+              {children}
+            </main>
+          </UserProvider>
         </SessionProvider>
       </body>
     </html>

@@ -24,11 +24,20 @@ export async function initializeDatabase() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
+      avatar TEXT,
       role TEXT DEFAULT 'user',
       banned_until DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Add avatar column if it doesn't exist (for existing databases)
+  try {
+    await client.execute(`ALTER TABLE users ADD COLUMN avatar TEXT`);
+    console.log('✅ Added avatar column to users table');
+  } catch {
+    // Column already exists, ignore
+  }
 
   // Create words table
   await client.execute(`
@@ -546,7 +555,7 @@ export async function updateWord(
 
 export async function getUserByEmail(email: string) {
   const result = await client.execute({
-    sql: 'SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE email = ?',
+    sql: 'SELECT id, email, password_hash, name, role, avatar, banned_until, created_at FROM users WHERE email = ?',
     args: [email]
   });
 
@@ -559,6 +568,7 @@ export async function getUserByEmail(email: string) {
     password_hash: row.password_hash as string,
     name: row.name as string,
     role: row.role as string,
+    avatar: row.avatar as string | null,
     banned_until: row.banned_until as string | null,
     created_at: row.created_at as string
   };
@@ -566,7 +576,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: number) {
   const result = await client.execute({
-    sql: 'SELECT id, email, password_hash, name, role, banned_until, created_at FROM users WHERE id = ?',
+    sql: 'SELECT id, email, password_hash, name, role, avatar, banned_until, created_at FROM users WHERE id = ?',
     args: [id]
   });
 
@@ -579,6 +589,7 @@ export async function getUserById(id: number) {
     password_hash: row.password_hash as string,
     name: row.name as string,
     role: row.role as string,
+    avatar: row.avatar as string | null,
     banned_until: row.banned_until as string | null,
     created_at: row.created_at as string
   };

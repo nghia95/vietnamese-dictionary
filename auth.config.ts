@@ -49,15 +49,20 @@ export const authConfig: NextAuthConfig = {
                     email: user.email,
                     name: user.name,
                     role: user.role,
+                    avatar: user.avatar,
                 };
             },
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
+            }
+            // Handle session update for simple fields
+            if (trigger === "update" && session) {
+                if (session.name) token.name = session.name;
             }
             return token;
         },
@@ -71,5 +76,16 @@ export const authConfig: NextAuthConfig = {
     },
     session: {
         strategy: 'jwt',
+    },
+    cookies: {
+        sessionToken: {
+            name: `vietdict.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+            },
+        },
     },
 };
