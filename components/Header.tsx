@@ -98,6 +98,9 @@ export default function Header() {
                                     <Link href="/admin/feedbacks" className="btn btn-secondary" style={{ marginLeft: '10px' }}>
                                         Phản hồi
                                     </Link>
+                                    <Link href="/admin/import" className="btn btn-secondary" style={{ marginLeft: '10px', backgroundColor: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}>
+                                        ✨ AI Import
+                                    </Link>
                                 </>
                             )}
                         </>

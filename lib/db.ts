@@ -280,7 +280,7 @@ export async function updateFeedbackStatus(id: number, status: string) {
 }
 
 // Database query functions
-export async function searchWords(query: string): Promise<Word[]> {
+export async function searchWords(query: string, letter?: string): Promise<Word[]> {
   const result = await client.execute({
     sql: `
       SELECT 
@@ -293,11 +293,12 @@ export async function searchWords(query: string): Promise<Word[]> {
         w.created_at
       FROM words w
       LEFT JOIN users u ON w.user_id = u.id
-      WHERE w.word LIKE ? COLLATE NOCASE
+      WHERE (w.word LIKE ? COLLATE NOCASE)
+      ${letter ? 'AND (w.word LIKE ? COLLATE NOCASE)' : ''}
       ORDER BY w.sort_key ASC
       LIMIT 50
     `,
-    args: [`%${query}%`]
+    args: [`%${query}%`, ...(letter ? [`${letter}%`] : [])]
   });
 
   const words: Word[] = result.rows.map(row => ({
@@ -555,7 +556,7 @@ export async function updateWord(
 
 export async function getUserByEmail(email: string) {
   const result = await client.execute({
-    sql: 'SELECT id, email, password_hash, name, role, avatar, banned_until, created_at FROM users WHERE email = ?',
+    sql: 'SELECT id, email, password_hash, name, role, avatar, banned_until, created_at, email_verified, verification_token FROM users WHERE email = ?',
     args: [email]
   });
 
@@ -570,7 +571,9 @@ export async function getUserByEmail(email: string) {
     role: row.role as string,
     avatar: row.avatar as string | null,
     banned_until: row.banned_until as string | null,
-    created_at: row.created_at as string
+    created_at: row.created_at as string,
+    email_verified: row.email_verified as string | null,
+    verification_token: row.verification_token as string | null
   };
 }
 
@@ -636,9 +639,77 @@ export async function getDistinctSources(): Promise<string[]> {
 
 export async function createUser(email: string, passwordHash: string, name: string) {
   return await client.execute({
-    sql: 'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
+    sql: 'INSERT INTO users (email, password_hash, name, email_verified) VALUES (?, ?, ?, 1)',
     args: [email, passwordHash, name]
   });
+}
+
+// --- Import Helpers ---
+
+export async function findWordExact(word: string): Promise<Word | undefined> {
+  const result = await client.execute({
+    sql: 'SELECT id, word, phonetic, image, user_id, created_at FROM words WHERE word = ? COLLATE NOCASE',
+    args: [word]
+  });
+
+  if (result.rows.length === 0) return undefined;
+  const row = result.rows[0];
+
+  // We only need basic info for the check, but full object structure matches Word types
+  return {
+    id: row.id as number,
+    word: row.word as string,
+    phonetic: row.phonetic as string | null,
+    image: row.image as string | null,
+    user_id: row.user_id as number | null,
+    user_name: null, // Not needed for this check
+    created_at: row.created_at as string,
+    definitions: [],
+    etymologies: [],
+    synonyms: [],
+    antonyms: []
+  };
+}
+
+export async function appendDefinitions(
+  wordId: number,
+  definitions: { definition: string; source: string }[]
+): Promise<void> {
+  // Get current max order
+  const orderResult = await client.execute({
+    sql: 'SELECT MAX("order") as max_order FROM definitions WHERE word_id = ?',
+    args: [wordId]
+  });
+  let currentOrder = (orderResult.rows[0]?.max_order as number) || 0;
+
+  for (const def of definitions) {
+    currentOrder++;
+    await client.execute({
+      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
+      args: [wordId, def.definition, def.source, currentOrder]
+    });
+  }
+}
+
+export async function appendRelatedWords(
+  wordId: number,
+  words: string[],
+  type: 'synonym' | 'antonym'
+): Promise<void> {
+  for (const word of words) {
+    // Check if exists to avoid duplicates (optional but good)
+    const check = await client.execute({
+      sql: 'SELECT 1 FROM related_words WHERE word_id = ? AND word = ? AND type = ?',
+      args: [wordId, word, type]
+    });
+
+    if (check.rows.length === 0) {
+      await client.execute({
+        sql: 'INSERT INTO related_words (word_id, word, type) VALUES (?, ?, ?)',
+        args: [wordId, word, type]
+      });
+    }
+  }
 }
 
 

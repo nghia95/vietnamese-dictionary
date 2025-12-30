@@ -21,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
-      <body className={lexend.className}>
+    <html lang="vi" suppressHydrationWarning>
+      <body className={lexend.className} suppressHydrationWarning>
         <SessionProvider>
           <UserProvider>
             <Header />

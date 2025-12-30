@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
         const query = searchParams.get('search') || '';
+        const letter = searchParams.get('letter') || undefined;
 
-        const words = await searchWords(query);
+        const words = await searchWords(query, letter);
 
         return NextResponse.json({ words });
     } catch (error) {

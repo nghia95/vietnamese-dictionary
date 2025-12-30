@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         await createUser(email, passwordHash, name);
 
         return NextResponse.json(
-            { message: 'User created successfully' },
+            { message: 'Đăng ký thành công! Bạn có thể đăng nhập ngay.' },
             { status: 201 }
         );
     } catch (error) {

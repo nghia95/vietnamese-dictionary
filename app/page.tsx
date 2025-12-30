@@ -2,34 +2,54 @@
 
 import { useState, useEffect } from 'react';
 import WordCard from '@/components/WordCard';
+import AlphabetFilter from '@/components/AlphabetFilter';
 import { Word } from '@/types';
 import styles from './page.module.css';
 import { useSession } from 'next-auth/react';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [words, setWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
 
-  useEffect(() => {
-    // Load initial words
-    fetchWords('');
-  }, []);
+
 
   useEffect(() => {
     // Debounce search
     const timer = setTimeout(() => {
-      fetchWords(searchQuery);
+      fetchWords(searchQuery, selectedLetter);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, selectedLetter]);
 
-  const fetchWords = async (query: string) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (e.target.value) {
+      setSelectedLetter(null); // Clear letter filter when searching
+    }
+  };
+
+  const handleLetterSelect = (letter: string | null) => {
+    setSelectedLetter(letter);
+    setSearchQuery(''); // Clear search when filtering by letter
+  };
+
+  const fetchWords = async (query: string, letter: string | null) => {
+    if (!query && !letter) {
+      setWords([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/words?search=${encodeURIComponent(query)}`);
+      let url = `/api/words?search=${encodeURIComponent(query)}`;
+      if (letter) {
+        url += `&letter=${encodeURIComponent(letter)}`;
+      }
+      const response = await fetch(url);
       const data = await response.json();
       setWords(data.words || []);
     } catch (error) {
@@ -57,7 +77,7 @@ export default function Home() {
                 type="text"
                 placeholder="Tìm kiếm từ vựng tiếng Việt..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && session?.user && searchQuery.trim()) {
                     fetch('/api/history', {
@@ -76,6 +96,8 @@ export default function Home() {
 
       <section className={styles.resultsSection}>
         <div className="container">
+          <AlphabetFilter selectedLetter={selectedLetter} onSelectLetter={handleLetterSelect} />
+
           {isLoading ? (
             <div className={styles.loadingContainer}>
               <div className="loading"></div>
@@ -86,6 +108,11 @@ export default function Home() {
               {searchQuery && (
                 <h2 className={styles.resultsTitle}>
                   Kết quả cho "{searchQuery}" ({words.length})
+                </h2>
+              )}
+              {selectedLetter && (
+                <h2 className={styles.resultsTitle}>
+                  Từ bắt đầu bằng "{selectedLetter}" ({words.length})
                 </h2>
               )}
               <div className={styles.wordsGrid}>

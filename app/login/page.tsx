@@ -64,7 +64,9 @@ export default function LoginPage() {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Mật khẩu</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label htmlFor="password">Mật khẩu</label>
+                        </div>
                         <input
                             id="password"
                             type="password"
@@ -74,6 +76,8 @@ export default function LoginPage() {
                             placeholder="••••••••"
                         />
                     </div>
+
+                    <div style={{ marginTop: '20px' }}></div>
 
                     <button type="submit" className="btn btn-primary" disabled={isLoading} style={{ width: '100%' }}>
                         {isLoading ? <span className="loading"></span> : 'Đăng nhập'}

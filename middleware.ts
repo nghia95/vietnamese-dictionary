@@ -5,7 +5,8 @@ export function middleware(request: NextRequest) {
     const isOnAddWordPage = request.nextUrl.pathname.startsWith('/add-word');
 
     // Check for session via cookie
-    const sessionToken = request.cookies.get('authjs.session-token') ||
+    const sessionToken = request.cookies.get('vietdict.session-token') ||
+        request.cookies.get('authjs.session-token') ||
         request.cookies.get('__Secure-authjs.session-token');
 
     const isLoggedIn = !!sessionToken;
