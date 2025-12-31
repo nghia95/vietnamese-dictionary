@@ -78,3 +78,8 @@ export function getVietnameseSortKey(word: string): string {
     }
     return result;
 }
+
+export function toTitleCase(word: string): string {
+    if (!word) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}

@@ -14,6 +14,23 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
 
+  // Dynamic Settings
+  const [welcomeText, setWelcomeText] = useState('Chào mừng đến với Từ Điển Việt');
+  const [welcomeImage, setWelcomeImage] = useState('📖');
+
+  useEffect(() => {
+    // Fetch settings
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings) {
+          if (data.settings.home_welcome_text) setWelcomeText(data.settings.home_welcome_text);
+          if (data.settings.home_welcome_image) setWelcomeImage(data.settings.home_welcome_image);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
 
 
   useEffect(() => {
@@ -133,8 +150,14 @@ export default function Home() {
             </div>
           ) : (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📖</span>
-              <h3>Chào mừng đến với Từ Điển Việt</h3>
+              <span className={styles.emptyIcon}>
+                {welcomeImage.startsWith('http') || welcomeImage.startsWith('data:image') ? (
+                  <img src={welcomeImage} alt="Welcome" style={{ height: '3rem', width: 'auto' }} />
+                ) : (
+                  welcomeImage
+                )}
+              </span>
+              <h3>{welcomeText}</h3>
               <p>Bắt đầu tìm kiếm từ vựng tiếng Việt ngay bây giờ</p>
             </div>
           )}

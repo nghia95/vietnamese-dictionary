@@ -101,6 +101,9 @@ export default function Header() {
                                     <Link href="/admin/import" className="btn btn-secondary" style={{ marginLeft: '10px', backgroundColor: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}>
                                         ✨ AI Import
                                     </Link>
+                                    <Link href="/admin/settings" className="btn btn-secondary" style={{ marginLeft: '10px' }}>
+                                        ⚙️ Cài đặt Trang chủ
+                                    </Link>
                                 </>
                             )}
                         </>

@@ -1,6 +1,6 @@
 import { createClient, type Client } from '@libsql/client';
 import { Word, Definition } from '@/types';
-import { getVietnameseSortKey } from './utils';
+import { getVietnameseSortKey, toTitleCase } from './utils';
 
 // Create Turso/LibSQL client
 const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
@@ -135,6 +135,17 @@ export async function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE SET NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create settings table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_by INTEGER,
+      FOREIGN KEY (updated_by) REFERENCES users(id)
     )
   `);
 
@@ -395,10 +406,11 @@ export async function addWordWithDefinitions(
   antonyms: string[],
   userId: number | null
 ): Promise<number> {
-  const sortKey = getVietnameseSortKey(word);
+  const titleCaseWord = toTitleCase(word);
+  const sortKey = getVietnameseSortKey(titleCaseWord);
   const result = await client.execute({
     sql: 'INSERT INTO words (word, phonetic, image, sort_key, user_id) VALUES (?, ?, ?, ?, ?)',
-    args: [word, phonetic, image, sortKey, userId]
+    args: [titleCaseWord, phonetic, image, sortKey, userId]
   });
 
   const wordId = Number(result.lastInsertRowid);
@@ -511,10 +523,11 @@ export async function updateWord(
   synonyms: string[],
   antonyms: string[]
 ): Promise<boolean> {
-  const sortKey = getVietnameseSortKey(word);
+  const titleCaseWord = toTitleCase(word);
+  const sortKey = getVietnameseSortKey(titleCaseWord);
   await client.execute({
     sql: 'UPDATE words SET word = ?, phonetic = ?, image = ?, sort_key = ? WHERE id = ?',
-    args: [word, phonetic, image, sortKey, id]
+    args: [titleCaseWord, phonetic, image, sortKey, id]
   });
 
   // Clear existing data
@@ -758,6 +771,39 @@ export async function clearHistory(userId: number, type?: 'SEARCH' | 'VIEW'): Pr
   }
 
   await client.execute({ sql, args });
+}
+
+export async function getSetting(key: string): Promise<string | null> {
+  const result = await client.execute({
+    sql: 'SELECT value FROM settings WHERE key = ?',
+    args: [key]
+  });
+  if (result.rows.length === 0) return null;
+  return result.rows[0].value as string;
+}
+
+export async function updateSetting(key: string, value: string, userId: number): Promise<void> {
+  // Upsert
+  await client.execute({
+    sql: `
+      INSERT INTO settings (key, value, updated_by, updated_at) 
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET 
+        value = excluded.value, 
+        updated_by = excluded.updated_by, 
+        updated_at = CURRENT_TIMESTAMP
+    `,
+    args: [key, value, userId]
+  });
+}
+
+export async function getAllSettings(): Promise<Record<string, string>> {
+  const result = await client.execute('SELECT key, value FROM settings');
+  const settings: Record<string, string> = {};
+  for (const row of result.rows) {
+    settings[row.key as string] = row.value as string;
+  }
+  return settings;
 }
 
 export { client };
