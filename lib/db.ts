@@ -1,6 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { Word, Definition } from '@/types';
-import { getVietnameseSortKey, toTitleCase } from './utils';
+import { getVietnameseSortKey, toTitleCase, getVietnameseVariations } from './utils';
+
 
 // Create Turso/LibSQL client
 const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
@@ -60,11 +61,20 @@ export async function initializeDatabase() {
       word_id INTEGER NOT NULL,
       definition TEXT NOT NULL,
       source TEXT NOT NULL DEFAULT 'Community',
-      "order" INTEGER NOT NULL DEFAULT 0,
+      type TEXT,
+      \`order\` INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
     )
   `);
+
+  // Add type column if it doesn't exist (for existing databases)
+  try {
+    await client.execute(`ALTER TABLE definitions ADD COLUMN type TEXT`);
+    console.log('✅ Added type column to definitions table');
+  } catch {
+    // Column already exists, ignore
+  }
 
   // Create etymologies table
   await client.execute(`
@@ -294,22 +304,28 @@ export async function updateFeedbackStatus(id: number, status: string) {
 export async function searchWords(query: string, letter?: string): Promise<Word[]> {
   const result = await client.execute({
     sql: `
-      SELECT 
-        w.id,
-        w.word,
-        w.phonetic,
-        w.image,
-        w.user_id,
-        u.name as user_name,
-        w.created_at
-      FROM words w
-      LEFT JOIN users u ON w.user_id = u.id
-      WHERE (w.word LIKE ? COLLATE NOCASE)
-      ${letter ? 'AND (w.word LIKE ? COLLATE NOCASE)' : ''}
-      ORDER BY w.sort_key ASC
-      LIMIT 50
-    `,
-    args: [`%${query}%`, ...(letter ? [`${letter}%`] : [])]
+        SELECT 
+          w.id,
+          w.word,
+          w.phonetic,
+          w.image,
+          w.user_id,
+          u.name as user_name,
+          w.created_at
+        FROM words w
+        LEFT JOIN users u ON w.user_id = u.id
+        WHERE (w.normalized_word LIKE ? OR w.word LIKE ? COLLATE NOCASE)
+        ${letter ? `AND (
+            substr(w.normalized_word, 1, 1) IN (${getVietnameseVariations(letter).map(() => '?').join(',')})
+        )` : ''}
+        ORDER BY w.sort_key ASC
+        LIMIT 1000
+      `,
+    args: [
+      `%${query.toLowerCase()}%`,
+      `%${query}%`,
+      ...(letter ? getVietnameseVariations(letter) : [])
+    ]
   });
 
   const words: Word[] = result.rows.map(row => ({
@@ -333,7 +349,7 @@ export async function searchWords(query: string, letter?: string): Promise<Word[
 
   // Fetch definitions
   const defResult = await client.execute({
-    sql: `SELECT id, word_id, definition, source, "order", created_at FROM definitions WHERE word_id IN (${placeholders}) ORDER BY "order"`,
+    sql: `SELECT id, word_id, definition, source, type, \`order\`, created_at FROM definitions WHERE word_id IN (${placeholders}) ORDER BY \`order\``,
     args: wordIds
   });
 
@@ -400,7 +416,7 @@ export async function addWordWithDefinitions(
   word: string,
   phonetic: string | null,
   image: string | null,
-  definitions: { definition: string; source: string }[],
+  definitions: { definition: string; source: string; type?: string }[],
   etymologies: string[],
   synonyms: string[],
   antonyms: string[],
@@ -409,16 +425,16 @@ export async function addWordWithDefinitions(
   const titleCaseWord = toTitleCase(word);
   const sortKey = getVietnameseSortKey(titleCaseWord);
   const result = await client.execute({
-    sql: 'INSERT INTO words (word, phonetic, image, sort_key, user_id) VALUES (?, ?, ?, ?, ?)',
-    args: [titleCaseWord, phonetic, image, sortKey, userId]
+    sql: 'INSERT INTO words (word, phonetic, image, sort_key, user_id, normalized_word) VALUES (?, ?, ?, ?, ?, ?)',
+    args: [titleCaseWord, phonetic, image, sortKey, userId, titleCaseWord.toLowerCase()]
   });
 
   const wordId = Number(result.lastInsertRowid);
 
   for (let i = 0; i < definitions.length; i++) {
     await client.execute({
-      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
-      args: [wordId, definitions[i].definition, definitions[i].source, i]
+      sql: 'INSERT INTO definitions (word_id, definition, source, type, "order") VALUES (?, ?, ?, ?, ?)',
+      args: [wordId, definitions[i].definition, definitions[i].source, definitions[i].type || null, i]
     });
   }
 
@@ -469,7 +485,7 @@ export async function getWordById(id: number): Promise<Word | undefined> {
 
   // Fetch definitions
   const defResult = await client.execute({
-    sql: `SELECT id, word_id, definition, source, "order", created_at FROM definitions WHERE word_id = ? ORDER BY "order"`,
+    sql: `SELECT id, word_id, definition, source, type, \`order\`, created_at FROM definitions WHERE word_id = ? ORDER BY \`order\``,
     args: [id]
   });
 
@@ -504,6 +520,7 @@ export async function getWordById(id: number): Promise<Word | undefined> {
       word_id: d.word_id as number,
       definition: d.definition as string,
       source: d.source as string,
+      type: d.type as string | undefined,
       order: d.order as number,
       created_at: d.created_at as string
     })),
@@ -518,7 +535,7 @@ export async function updateWord(
   word: string,
   phonetic: string | null,
   image: string | null,
-  definitions: { definition: string; source: string }[],
+  definitions: { definition: string; source: string; type?: string }[],
   etymologies: string[],
   synonyms: string[],
   antonyms: string[]
@@ -526,8 +543,8 @@ export async function updateWord(
   const titleCaseWord = toTitleCase(word);
   const sortKey = getVietnameseSortKey(titleCaseWord);
   await client.execute({
-    sql: 'UPDATE words SET word = ?, phonetic = ?, image = ?, sort_key = ? WHERE id = ?',
-    args: [titleCaseWord, phonetic, image, sortKey, id]
+    sql: 'UPDATE words SET word = ?, phonetic = ?, image = ?, sort_key = ?, normalized_word = ? WHERE id = ?',
+    args: [titleCaseWord, phonetic, image, sortKey, titleCaseWord.toLowerCase(), id]
   });
 
   // Clear existing data
@@ -538,8 +555,8 @@ export async function updateWord(
   // Insert new data
   for (let i = 0; i < definitions.length; i++) {
     await client.execute({
-      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
-      args: [id, definitions[i].definition, definitions[i].source, i]
+      sql: 'INSERT INTO definitions (word_id, definition, source, type, "order") VALUES (?, ?, ?, ?, ?)',
+      args: [id, definitions[i].definition, definitions[i].source, definitions[i].type || null, i]
     });
   }
 
@@ -686,7 +703,7 @@ export async function findWordExact(word: string): Promise<Word | undefined> {
 
 export async function appendDefinitions(
   wordId: number,
-  definitions: { definition: string; source: string }[]
+  definitions: { definition: string; source: string; type?: string }[]
 ): Promise<void> {
   // Get current max order
   const orderResult = await client.execute({
@@ -697,9 +714,10 @@ export async function appendDefinitions(
 
   for (const def of definitions) {
     currentOrder++;
+    // Insert definition
     await client.execute({
-      sql: 'INSERT INTO definitions (word_id, definition, source, "order") VALUES (?, ?, ?, ?)',
-      args: [wordId, def.definition, def.source, currentOrder]
+      sql: 'INSERT INTO definitions (word_id, definition, source, type, "order") VALUES (?, ?, ?, ?, ?)',
+      args: [wordId, def.definition, def.source, def.type || null, currentOrder]
     });
   }
 }

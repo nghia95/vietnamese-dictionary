@@ -28,10 +28,10 @@ export default function Header() {
     return (
         <header className={styles.header}>
             <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
-                <Link href="/" className={styles.logo}>
+                <a href="/" className={styles.logo}>
                     <span className={styles.logoIcon}>📖</span>
                     Từ điển tiếng Việt
-                </Link>
+                </a>
 
                 <nav className={styles.nav}>
                     {status === 'loading' ? (

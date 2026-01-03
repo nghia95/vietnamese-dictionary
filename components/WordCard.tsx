@@ -165,6 +165,20 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                                             {definitions.length > 1 && (
                                                 <span className={styles.definitionNumber} style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>{index + 1}.</span>
                                             )}
+                                            {def.type && (
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    fontSize: '0.75em',
+                                                    padding: '2px 8px',
+                                                    marginRight: '0.5rem',
+                                                    borderRadius: '12px',
+                                                    background: 'var(--accent-blue)',
+                                                    color: 'white',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    {def.type}
+                                                </span>
+                                            )}
                                             {def.definition}
                                         </div>
                                     </div>

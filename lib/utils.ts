@@ -83,3 +83,27 @@ export function toTitleCase(word: string): string {
     if (!word) return word;
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 }
+
+export function getVietnameseVariations(letter: string): string[] {
+    const base = letter.toLowerCase();
+    const map: Record<string, string[]> = {
+        'a': ['a', 'á', 'à', 'ả', 'ã', 'ạ'],
+        'ă': ['ă', 'ằ', 'ắ', 'ẳ', 'ẵ', 'ặ'],
+        'â': ['â', 'ầ', 'ấ', 'ẩ', 'ẫ', 'ậ'],
+        'e': ['e', 'é', 'è', 'ẻ', 'ẽ', 'ẹ'],
+        'ê': ['ê', 'ề', 'ế', 'ể', 'ễ', 'ệ'],
+        'i': ['i', 'í', 'ì', 'ỉ', 'ĩ', 'ị'],
+        'o': ['o', 'ó', 'ò', 'ỏ', 'õ', 'ọ'],
+        'ô': ['ô', 'ồ', 'ố', 'ổ', 'ỗ', 'ộ'],
+        'ơ': ['ơ', 'ờ', 'ớ', 'ở', 'ỡ', 'ợ'],
+        'u': ['u', 'ú', 'ù', 'ủ', 'ũ', 'ụ'],
+        'ư': ['ư', 'ừ', 'ứ', 'ử', 'ữ', 'ự'],
+        'y': ['y', 'ý', 'ỳ', 'ỷ', 'ỹ', 'ỵ'],
+        'd': ['d'],
+        'đ': ['đ']
+    };
+
+    // Return variations if exist, otherwise just the letter itself (and uppercase to be safe if caller needs, but we return lowercase list usually)
+    // Actually, let's return lowercase list.
+    return map[base] || [base];
+}

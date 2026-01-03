@@ -6,6 +6,7 @@ import styles from '@/app/add-word/addWord.module.css';
 export interface DefinitionInput {
     definition: string;
     source: string;
+    type?: string;
 }
 
 export interface WordData {
@@ -32,8 +33,21 @@ interface WordFormProps {
 interface SourceGroup {
     id: number;
     source: string;
-    definitions: { id: number; text: string }[];
+    definitions: { id: number; text: string; type?: string }[];
 }
+
+// Word type options in Vietnamese
+const WORD_TYPES = [
+    { value: '', label: '-- Chọn loại từ (tùy chọn) --' },
+    { value: 'Danh từ', label: 'Danh từ (Noun)' },
+    { value: 'Động từ', label: 'Động từ (Verb)' },
+    { value: 'Tính từ', label: 'Tính từ (Adjective)' },
+    { value: 'Trạng từ', label: 'Trạng từ (Adverb)' },
+    { value: 'Đại từ', label: 'Đại từ (Pronoun)' },
+    { value: 'Giới từ', label: 'Giới từ (Preposition)' },
+    { value: 'Liên từ', label: 'Liên từ (Conjunction)' },
+    { value: 'Thán từ', label: 'Thán từ (Interjection)' },
+];
 
 export default function WordForm({
     initialData,
@@ -50,7 +64,7 @@ export default function WordForm({
     const [image, setImage] = useState('');
     // Grouped state
     const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([
-        { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] }
+        { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '', type: '' }] }
     ]);
     const [availableSources, setAvailableSources] = useState<string[]>([]);
 
@@ -84,24 +98,28 @@ export default function WordForm({
             const groups: SourceGroup[] = [];
             const processedSources = new Set<string>();
 
-            // Group by source
-            const groupedDefs: Record<string, string[]> = {};
+            // Group by source, preserving types
+            const groupedDefs: Record<string, { definition: string; type?: string }[]> = {};
             initialData.definitions.forEach(def => {
                 const src = def.source || 'Community';
                 if (!groupedDefs[src]) groupedDefs[src] = [];
-                groupedDefs[src].push(def.definition);
+                groupedDefs[src].push({ definition: def.definition, type: def.type });
             });
 
-            Object.entries(groupedDefs).forEach(([source, texts], idx) => {
+            Object.entries(groupedDefs).forEach(([source, defs], idx) => {
                 groups.push({
                     id: Date.now() + idx,
                     source,
-                    definitions: texts.map((text, i) => ({ id: Date.now() + idx + i + 100, text }))
+                    definitions: defs.map((def, i) => ({
+                        id: Date.now() + idx + i + 100,
+                        text: def.definition,
+                        type: def.type || ''
+                    }))
                 });
             });
 
             if (groups.length === 0) {
-                groups.push({ id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] });
+                groups.push({ id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '', type: '' }] });
             }
 
             setSourceGroups(groups);
@@ -116,7 +134,7 @@ export default function WordForm({
     const handleAddSourceGroup = () => {
         setSourceGroups([
             ...sourceGroups,
-            { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '' }] }
+            { id: Date.now(), source: '', definitions: [{ id: Date.now() + 1, text: '', type: '' }] }
         ]);
     };
 
@@ -136,7 +154,7 @@ export default function WordForm({
 
     const handleAddDefinitionToGroup = (groupIndex: number) => {
         const newGroups = [...sourceGroups];
-        newGroups[groupIndex].definitions.push({ id: Date.now(), text: '' });
+        newGroups[groupIndex].definitions.push({ id: Date.now(), text: '', type: '' });
         setSourceGroups(newGroups);
     };
 
@@ -151,6 +169,12 @@ export default function WordForm({
     const handleDefinitionChange = (groupIndex: number, defIndex: number, value: string) => {
         const newGroups = [...sourceGroups];
         newGroups[groupIndex].definitions[defIndex].text = value;
+        setSourceGroups(newGroups);
+    };
+
+    const handleDefinitionTypeChange = (groupIndex: number, defIndex: number, value: string) => {
+        const newGroups = [...sourceGroups];
+        newGroups[groupIndex].definitions[defIndex].type = value;
         setSourceGroups(newGroups);
     };
 
@@ -200,7 +224,8 @@ export default function WordForm({
                 if (def.text.trim()) {
                     flatDefinitions.push({
                         definition: def.text.trim(),
-                        source: finalSource
+                        source: finalSource,
+                        type: def.type || undefined
                     });
                 }
             });
@@ -345,8 +370,8 @@ export default function WordForm({
                                 {/* Definitions in this source */}
                                 <div style={{ marginLeft: '20px', borderLeft: '2px solid var(--accent-blue)', paddingLeft: '15px' }}>
                                     {group.definitions.map((def, defIndex) => (
-                                        <div key={def.id} className="form-group" style={{ marginBottom: '10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div key={def.id} className="form-group" style={{ marginBottom: '15px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                                                 <label htmlFor={`def-${group.id}-${def.id}`} style={{ fontSize: '0.9em' }}>Nghĩa #{defIndex + 1}</label>
                                                 {group.definitions.length > 1 && (
                                                     <button
@@ -358,6 +383,19 @@ export default function WordForm({
                                                     </button>
                                                 )}
                                             </div>
+                                            <input
+                                                type="text"
+                                                list={`word-types-${group.id}-${def.id}`}
+                                                value={def.type || ''}
+                                                onChange={(e) => handleDefinitionTypeChange(groupIndex, defIndex, e.target.value)}
+                                                placeholder="Loại từ"
+                                                style={{ marginBottom: '8px' }}
+                                            />
+                                            <datalist id={`word-types-${group.id}-${def.id}`}>
+                                                {WORD_TYPES.slice(1).map(type => (
+                                                    <option key={type.value} value={type.value} />
+                                                ))}
+                                            </datalist>
                                             <textarea
                                                 id={`def-${group.id}-${def.id}`}
                                                 value={def.text}

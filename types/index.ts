@@ -3,6 +3,7 @@ export interface Definition {
   word_id: number;
   definition: string;
   source: string;
+  type?: string;
   order: number;
   created_at: string;
 }
@@ -35,6 +36,7 @@ export interface WordInput {
   definitions: {
     definition: string;
     source: string;
+    type?: string;
   }[];
   etymologies: string[];
   synonyms: string[];
