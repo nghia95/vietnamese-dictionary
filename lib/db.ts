@@ -667,6 +667,14 @@ export async function getDistinctSources(): Promise<string[]> {
   return result.rows.map(row => row.source as string);
 }
 
+export async function updateSourceName(oldName: string, newName: string): Promise<number> {
+  const result = await client.execute({
+    sql: 'UPDATE definitions SET source = ? WHERE source = ?',
+    args: [newName, oldName]
+  });
+  return result.rowsAffected;
+}
+
 export async function createUser(email: string, passwordHash: string, name: string) {
   return await client.execute({
     sql: 'INSERT INTO users (email, password_hash, name, email_verified) VALUES (?, ?, ?, 1)',

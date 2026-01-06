@@ -143,6 +143,13 @@ export default function Header() {
                                                 >
                                                     🔧 Cài đặt Trang chủ
                                                 </Link>
+                                                <Link
+                                                    href="/admin/sources"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => setIsDropdownOpen(false)}
+                                                >
+                                                    📚 Tài liệu tham khảo
+                                                </Link>
                                             </>
                                         )}
 
