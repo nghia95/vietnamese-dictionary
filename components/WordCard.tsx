@@ -9,9 +9,12 @@ interface WordCardProps {
     word: Word;
     currentUserRole?: string;
     currentUserId?: string; // Add this prop to parent usage too if needed, but for now we check role
+    isSelectable?: boolean;
+    isSelected?: boolean;
+    onToggleSelect?: () => void;
 }
 
-export default function WordCard({ word, currentUserRole }: WordCardProps) {
+export default function WordCard({ word, currentUserRole, isSelectable, isSelected, onToggleSelect }: WordCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
     const [feedbackContent, setFeedbackContent] = useState('');
@@ -84,6 +87,25 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
     const WordContent = () => (
         <>
             <div className={styles.wordHeader}>
+                {isSelectable && (
+                    <div style={{ marginRight: '1rem', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                onToggleSelect?.();
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                width: '20px',
+                                height: '20px',
+                                cursor: 'pointer',
+                                accentColor: 'var(--accent-blue)'
+                            }}
+                        />
+                    </div>
+                )}
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', flexWrap: 'wrap' }}>
                         <h3 className={styles.wordTitle}>{word.word}</h3>
@@ -293,6 +315,9 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                 <div
                     className={`card ${styles.wordCard}`}
                     onClick={() => {
+                        // Don't expand if in selection mode - let checkbox handle clicks
+                        if (isSelectable) return;
+
                         setIsExpanded(true);
                         if (isLoggedIn) {
                             fetch('/api/history', {
@@ -302,6 +327,7 @@ export default function WordCard({ word, currentUserRole }: WordCardProps) {
                             }).catch(console.error);
                         }
                     }}
+                    style={{ cursor: isSelectable ? 'default' : 'pointer' }}
                 >
                     <WordContent />
                 </div>

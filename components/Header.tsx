@@ -10,12 +10,18 @@ export default function Header() {
     const { data: session, status } = useSession();
     const { user } = useUser();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isAddWordDropdownOpen, setIsAddWordDropdownOpen] = useState(false);
+
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const addWordDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsDropdownOpen(false);
+            }
+            if (addWordDropdownRef.current && !addWordDropdownRef.current.contains(event.target as Node)) {
+                setIsAddWordDropdownOpen(false);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -24,6 +30,7 @@ export default function Header() {
 
     const displayName = user?.name || session?.user?.name;
     const displayAvatar = user?.avatar;
+    const isAdminOrMod = session?.user?.role === 'admin' || session?.user?.role === 'moderator';
 
     return (
         <header className={styles.header}>
@@ -38,6 +45,41 @@ export default function Header() {
                         <div style={{ width: '100px', height: '36px' }}></div>
                     ) : session ? (
                         <>
+                            {/* Add Word Dropdown */}
+                            {isAdminOrMod && (
+                                <div className={styles.dropdownContainer} ref={addWordDropdownRef}>
+                                    <button
+                                        className={`btn btn-primary`}
+                                        onClick={() => setIsAddWordDropdownOpen(!isAddWordDropdownOpen)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    >
+                                        <span>➕</span>
+                                        <span>Thêm từ mới</span>
+                                        <span style={{ fontSize: '0.8em' }}>▼</span>
+                                    </button>
+
+                                    {isAddWordDropdownOpen && (
+                                        <div className={styles.dropdownMenu}>
+                                            <Link
+                                                href="/add-word"
+                                                className={styles.dropdownItem}
+                                                onClick={() => setIsAddWordDropdownOpen(false)}
+                                            >
+                                                ✍️ Nhập thủ công
+                                            </Link>
+                                            <Link
+                                                href="/admin/import"
+                                                className={styles.dropdownItem}
+                                                onClick={() => setIsAddWordDropdownOpen(false)}
+                                            >
+                                                ✨ Nhập tự động (AI)
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* User Dropdown */}
                             <div className={styles.dropdownContainer} ref={dropdownRef}>
                                 <button
                                     className={`${styles.dropdownToggle} ${isDropdownOpen ? styles.active : ''}`}
@@ -75,6 +117,35 @@ export default function Header() {
                                         >
                                             ⚙️ Cài đặt
                                         </Link>
+
+                                        {/* Admin Links inside User Dropdown */}
+                                        {isAdminOrMod && (
+                                            <>
+                                                <div className={styles.dropdownDivider}></div>
+                                                <Link
+                                                    href="/admin/users"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => setIsDropdownOpen(false)}
+                                                >
+                                                    👥 Quản lý người dùng
+                                                </Link>
+                                                <Link
+                                                    href="/admin/feedbacks"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => setIsDropdownOpen(false)}
+                                                >
+                                                    💬 Phản hồi
+                                                </Link>
+                                                <Link
+                                                    href="/admin/settings"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => setIsDropdownOpen(false)}
+                                                >
+                                                    🔧 Cài đặt Trang chủ
+                                                </Link>
+                                            </>
+                                        )}
+
                                         <div className={styles.dropdownDivider}></div>
                                         <button
                                             onClick={() => signOut()}
@@ -86,26 +157,6 @@ export default function Header() {
                                     </div>
                                 )}
                             </div>
-
-                            {(session.user?.role === 'admin' || session.user?.role === 'moderator') && (
-                                <>
-                                    <Link href="/add-word" className="btn btn-primary">
-                                        Thêm từ mới
-                                    </Link>
-                                    <Link href="/admin/users" className="btn btn-secondary">
-                                        Quản lý người dùng
-                                    </Link>
-                                    <Link href="/admin/feedbacks" className="btn btn-secondary" style={{ marginLeft: '10px' }}>
-                                        Phản hồi
-                                    </Link>
-                                    <Link href="/admin/import" className="btn btn-secondary" style={{ marginLeft: '10px', backgroundColor: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}>
-                                        ✨ AI Import
-                                    </Link>
-                                    <Link href="/admin/settings" className="btn btn-secondary" style={{ marginLeft: '10px' }}>
-                                        ⚙️ Cài đặt Trang chủ
-                                    </Link>
-                                </>
-                            )}
                         </>
                     ) : (
                         <>

@@ -28,24 +28,35 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer);
         const base64Image = buffer.toString('base64');
 
+        // Handle optional guide file
+        const guideFile = formData.get('guideFile') as File | null;
+        let base64Guide = '';
+        if (guideFile) {
+            const guideArrayBuffer = await guideFile.arrayBuffer();
+            base64Guide = Buffer.from(guideArrayBuffer).toString('base64');
+        }
+
         const prompt = `
-            Analyze this dictionary page image and extract all the words and their definitions.
+            Analyze this dictionary page image (and optional symbol guide) and extract all the words and their definitions.
             
+            ${guideFile ? 'IMPORTANT: Use the provided Symbol Guide image to interpret abbreviations (e.g. "d" -> "danh từ"), symbols, and update word types/definitions accordingly.' : ''}
+
             OUTPUT REQUIREMENT:
             You must return a raw JSON array. Do not include markdown code blocks.
             
             SCHEMA:
             Array<Object {
                 word: string, // The main word being defined
-                type: string, // Part of speech (e.g. "d.", "đg.") or empty
-                definition: string, // Full definition text
-                synonyms: string[] // List of synonyms if present
+                type: string, // Part of speech (expanded from symbols if guide provided, e.g. "danh từ")
+                definitions: string[], // List of definitions. Split distinct meanings (e.g. 1, 2, 3 or I, II) into separate strings. Remove the numbering/bullets.
+                synonyms: string[], // List of synonyms if present
+                antonyms: string[] // List of antonyms if present
             }>
 
             Ignore headers and page numbers.
         `;
 
-        const result = await model.generateContent([
+        const contentParts: any[] = [
             prompt,
             {
                 inlineData: {
@@ -53,7 +64,18 @@ export async function POST(request: NextRequest) {
                     mimeType: file.type
                 }
             }
-        ]);
+        ];
+
+        if (guideFile && base64Guide) {
+            contentParts.push({
+                inlineData: {
+                    data: base64Guide,
+                    mimeType: guideFile.type
+                }
+            });
+        }
+
+        const result = await model.generateContent(contentParts);
 
         const response = await result.response;
         const text = response.text();

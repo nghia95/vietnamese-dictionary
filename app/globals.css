@@ -25,6 +25,8 @@
   --accent-pink: #F43F5E;
   /* Rose (kept for errors/alerts) */
   --accent-green: var(--primary-green);
+  --accent-blue: #3B82F6;
+  /* Blue for actions/selection */
 
   /* Neutral Colors (Light Theme) */
   --bg-primary: #FDFCF5;

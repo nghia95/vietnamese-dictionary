@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from '@/app/add-word/addWord.module.css';
+import VietnameseFileInput from './VietnameseFileInput';
 
 export interface DefinitionInput {
     definition: string;
@@ -218,18 +219,30 @@ export default function WordForm({
 
         // Flatten SourceGroups back to DefinitionInput[]
         const flatDefinitions: DefinitionInput[] = [];
+        let hasMissingSource = false;
+
         sourceGroups.forEach(group => {
-            const finalSource = group.source.trim() || 'Community';
+            const finalSource = group.source.trim();
+            // Check if source is empty but has definitions
+            if (!finalSource && group.definitions.some(d => d.text.trim())) {
+                hasMissingSource = true;
+            }
+
             group.definitions.forEach(def => {
                 if (def.text.trim()) {
                     flatDefinitions.push({
                         definition: def.text.trim(),
-                        source: finalSource,
+                        source: finalSource, // No longer defaults to 'Community'
                         type: def.type || undefined
                     });
                 }
             });
         });
+
+        if (hasMissingSource) {
+            alert('Vui lòng thêm nguồn cho các định nghĩa');
+            return;
+        }
 
         if (flatDefinitions.length === 0) {
             alert('Vui lòng nhập ít nhất một định nghĩa');
@@ -308,11 +321,9 @@ export default function WordForm({
                         {/* File Upload */}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <label style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>Tải ảnh từ máy tính:</label>
-                            <input
-                                type="file"
+                            <VietnameseFileInput
                                 accept="image/*"
                                 onChange={handleImageUpload}
-                                style={{ fontSize: '0.9em' }}
                             />
                         </div>
                     </div>
