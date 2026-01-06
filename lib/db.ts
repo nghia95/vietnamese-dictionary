@@ -693,6 +693,7 @@ export async function findWordExact(word: string): Promise<Word | undefined> {
     image: row.image as string | null,
     user_id: row.user_id as number | null,
     user_name: null, // Not needed for this check
+    created_at: row.created_at as string,
     definitions: [],
     etymologies: [],
     synonyms: [],
