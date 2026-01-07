@@ -26,7 +26,7 @@ export default function RootLayout({
         <SessionProvider>
           <UserProvider>
             <Header />
-            <main style={{ minHeight: 'calc(100vh - 80px)' }}>
+            <main style={{ minHeight: 'calc(100vh - 80px)', paddingTop: '80px' }}>
               {children}
             </main>
           </UserProvider>

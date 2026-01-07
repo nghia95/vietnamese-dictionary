@@ -11,6 +11,10 @@ export default function Header() {
     const { user } = useUser();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isAddWordDropdownOpen, setIsAddWordDropdownOpen] = useState(false);
+    const [logoText, setLogoText] = useState('Từ điển tiếng Việt');
+    const [logoImage, setLogoImage] = useState('');
+    const [logoType, setLogoType] = useState<'text' | 'image'>('text');
+    const [logoSize, setLogoSize] = useState('40');
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const addWordDropdownRef = useRef<HTMLDivElement>(null);
@@ -25,6 +29,20 @@ export default function Header() {
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
+
+        // Fetch settings for logo
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.settings) {
+                    if (data.settings.logo_text) setLogoText(data.settings.logo_text);
+                    if (data.settings.logo_image) setLogoImage(data.settings.logo_image);
+                    if (data.settings.logo_type) setLogoType(data.settings.logo_type as 'text' | 'image');
+                    if (data.settings.logo_size) setLogoSize(data.settings.logo_size);
+                }
+            })
+            .catch(console.error);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
@@ -35,9 +53,15 @@ export default function Header() {
     return (
         <header className={styles.header}>
             <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
-                <a href="/" className={styles.logo}>
-                    <span className={styles.logoIcon}>📖</span>
-                    Từ điển tiếng Việt
+                <a href="/" className={styles.logo} style={logoType === 'text' ? { fontSize: `${Math.max(16, parseInt(logoSize) / 2)}px` } : {}}>
+                    {logoType === 'image' && logoImage ? (
+                        <img src={logoImage} alt={logoText} style={{ height: `${logoSize}px`, width: 'auto', objectFit: 'contain' }} />
+                    ) : (
+                        <>
+                            <span className={styles.logoIcon}>📖</span>
+                            {logoText}
+                        </>
+                    )}
                 </a>
 
                 <nav className={styles.nav}>

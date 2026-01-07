@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import WordCard from '@/components/WordCard';
 import AlphabetFilter from '@/components/AlphabetFilter';
+import Footer from '@/components/Footer';
 import { Word } from '@/types';
 import styles from './page.module.css';
 import { useSession } from 'next-auth/react';
@@ -21,8 +22,9 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Dynamic Settings
-  const [welcomeText, setWelcomeText] = useState('Chào mừng đến với Từ Điển Việt');
-  const [welcomeImage, setWelcomeImage] = useState('📖');
+  const [heroTitle, setHeroTitle] = useState('Từ điển tiếng Việt');
+  const [heroSubtitle, setHeroSubtitle] = useState('Khám phá và học tiếng Việt một cách hiện đại');
+  const [searchPlaceholder, setSearchPlaceholder] = useState('Tìm kiếm từ vựng tiếng Việt...');
 
   useEffect(() => {
     // Fetch settings
@@ -30,8 +32,9 @@ export default function Home() {
       .then(res => res.json())
       .then(data => {
         if (data.settings) {
-          if (data.settings.home_welcome_text) setWelcomeText(data.settings.home_welcome_text);
-          if (data.settings.home_welcome_image) setWelcomeImage(data.settings.home_welcome_image);
+          if (data.settings.hero_title) setHeroTitle(data.settings.hero_title);
+          if (data.settings.hero_subtitle) setHeroSubtitle(data.settings.hero_subtitle);
+          if (data.settings.search_placeholder) setSearchPlaceholder(data.settings.search_placeholder);
         }
       })
       .catch(console.error);
@@ -160,10 +163,10 @@ export default function Home() {
       <section className={styles.hero}>
         <div className="container">
           <h1 className={`${styles.heroTitle} animate-fade-in`}>
-            Từ điển tiếng Việt
+            {heroTitle}
           </h1>
           <p className={`${styles.heroSubtitle} animate-fade-in`}>
-            Khám phá và học tiếng Việt một cách hiện đại
+            {heroSubtitle}
           </p>
 
           <div className={`${styles.searchContainer} animate-fade-in`}>
@@ -171,7 +174,7 @@ export default function Home() {
               <span className={styles.searchIcon}>🔍</span>
               <input
                 type="text"
-                placeholder="Tìm kiếm từ vựng tiếng Việt..."
+                placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={(e) => {
@@ -263,15 +266,7 @@ export default function Home() {
             </div>
           ) : (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>
-                {welcomeImage.startsWith('http') || welcomeImage.startsWith('data:image') ? (
-                  <img src={welcomeImage} alt="Welcome" style={{ height: '3rem', width: 'auto' }} />
-                ) : (
-                  welcomeImage
-                )}
-              </span>
-              <h3>{welcomeText}</h3>
-              <p>Bắt đầu tìm kiếm từ vựng tiếng Việt ngay bây giờ</p>
+              {/* Blank empty state as requested */}
             </div>
           )}
         </div>
@@ -351,6 +346,7 @@ export default function Home() {
           </button>
         </div>
       )}
+      <Footer isHidden={!!searchQuery || !!selectedLetter} />
     </div>
   );
 }
