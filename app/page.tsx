@@ -10,6 +10,7 @@ import { useSession } from 'next-auth/react';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [words, setWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +48,7 @@ export default function Home() {
     // Listen for reset home state event
     const handleReset = () => {
       setSearchQuery('');
+      setSubmittedQuery('');
       setSelectedLetter(null);
       setWords([]);
       setShowSuggestions(false);
@@ -124,6 +126,7 @@ export default function Home() {
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
+    setSubmittedQuery(suggestion);
     setShowSuggestions(false);
     setSuggestions([]);
     // Fetch words when suggestion is clicked
@@ -157,6 +160,7 @@ export default function Home() {
         handleSuggestionClick(suggestions[selectedSuggestionIndex]);
       } else if (searchQuery.trim()) {
         setShowSuggestions(false);
+        setSubmittedQuery(searchQuery);
         // Fetch words and log to history
         fetchWords(searchQuery, null);
         if (session?.user) {
@@ -175,6 +179,7 @@ export default function Home() {
   const handleLetterSelect = (letter: string | null) => {
     setSelectedLetter(letter);
     setSearchQuery(''); // Clear search when filtering by letter
+    setSubmittedQuery('');
   };
 
   const fetchWords = async (query: string, letter: string | null) => {
@@ -273,8 +278,8 @@ export default function Home() {
 
 
   return (
-    <div className={`${styles.homePage} ${words.length > 0 || searchQuery || selectedLetter ? styles.homePageActive : ''}`}>
-      <section className={`${styles.hero} ${words.length > 0 || searchQuery || selectedLetter ? styles.heroActive : ''}`}>
+    <div className={`${styles.homePage} ${words.length > 0 || submittedQuery || selectedLetter ? styles.homePageActive : ''}`}>
+      <section className={`${styles.hero} ${words.length > 0 || submittedQuery || selectedLetter ? styles.heroActive : ''}`}>
         <div className="container" style={{ width: '100%', maxWidth: '1200px', padding: '0 2rem' }}>
           <h1 className={`${styles.heroTitle} animate-fade-in`}>
             {heroTitle}
@@ -320,160 +325,167 @@ export default function Home() {
         </div>
       </section>
 
-      {(words.length > 0 || searchQuery || selectedLetter) && (
-        <section className={styles.resultsSection}>
-          <div className="container">
-            {isLoading ? (
-              <div className={styles.loadingContainer}>
-                <div className="loading"></div>
-                <p>Đang tìm kiếm...</p>
-              </div>
-            ) : words.length > 0 ? (
-              <>
-                {searchQuery && (
-                  <h2 className={styles.resultsTitle}>
-                    Kết quả cho "{searchQuery}" ({words.length})
-                  </h2>
-                )}
-                {selectedLetter && (
-                  <h2 className={styles.resultsTitle}>
-                    Từ bắt đầu bằng "{selectedLetter}" ({words.length})
-                  </h2>
-                )}
 
-                {/* Selection Mode Toggle for Admin/Moderator */}
-                {(session?.user?.role === 'admin' || session?.user?.role === 'moderator') && (
-                  <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button
-                      className="btn"
-                      onClick={() => {
-                        setIsSelectionMode(!isSelectionMode);
-                        setSelectedWordIds([]);
-                      }}
-                      style={{
-                        background: isSelectionMode ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                        color: isSelectionMode ? 'white' : 'var(--text-primary)'
-                      }}
-                    >
-                      {isSelectionMode ? '✓ Chế độ chọn' : '☑ Chế độ chọn'}
-                    </button>
-                    {isSelectionMode && selectedWordIds.length > 0 && (
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Đã chọn: {selectedWordIds.length}
-                      </span>
-                    )}
-                  </div>
-                )}
 
-                <div className={styles.wordsGrid}>
-                  {words.map((word) => (
-                    <WordCard
-                      key={word.id}
-                      word={word}
-                      currentUserRole={session?.user?.role}
-                      isSelectable={isSelectionMode}
-                      isSelected={selectedWordIds.includes(word.id)}
-                      onToggleSelect={() => {
-                        setSelectedWordIds(prev =>
-                          prev.includes(word.id)
-                            ? prev.filter(id => id !== word.id)
-                            : [...prev, word.id]
-                        );
-                      }}
-                    />
-                  ))}
+      {
+        (words.length > 0 || submittedQuery || selectedLetter) && (
+          <section className={styles.resultsSection}>
+            <div className="container">
+              {isLoading ? (
+                <div className={styles.loadingContainer}>
+                  <div className="loading"></div>
+                  <p>Đang tìm kiếm...</p>
                 </div>
-              </>
-            ) : searchQuery ? (
-              <div className={styles.emptyState}>
-                <span className={styles.emptyIcon}>📚</span>
-                <h3>Không tìm thấy từ nào</h3>
-                <p>Thử tìm kiếm với từ khóa khác hoặc thêm từ mới vào từ điển</p>
-              </div>
-            ) : (
-              <div className={styles.emptyState}>
-                {/* Blank empty state as requested */}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+              ) : words.length > 0 ? (
+                <>
+                  {submittedQuery && (
+                    <h2 className={styles.resultsTitle}>
+                      Kết quả cho "{submittedQuery}" ({words.length})
+                    </h2>
+                  )}
+                  {selectedLetter && (
+                    <h2 className={styles.resultsTitle}>
+                      Từ bắt đầu bằng "{selectedLetter}" ({words.length})
+                    </h2>
+                  )}
+
+                  {/* Selection Mode Toggle for Admin/Moderator */}
+                  {(session?.user?.role === 'admin' || session?.user?.role === 'moderator') && (
+                    <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        className="btn"
+                        onClick={() => {
+                          setIsSelectionMode(!isSelectionMode);
+                          setSelectedWordIds([]);
+                        }}
+                        style={{
+                          background: isSelectionMode ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                          color: isSelectionMode ? 'white' : 'var(--text-primary)'
+                        }}
+                      >
+                        {isSelectionMode ? '✓ Chế độ chọn' : '☑ Chế độ chọn'}
+                      </button>
+                      {isSelectionMode && selectedWordIds.length > 0 && (
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          Đã chọn: {selectedWordIds.length}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className={styles.wordsGrid}>
+                    {words.map((word) => (
+                      <WordCard
+                        key={word.id}
+                        word={word}
+                        currentUserRole={session?.user?.role}
+                        isSelectable={isSelectionMode}
+                        isSelected={selectedWordIds.includes(word.id)}
+                        onToggleSelect={() => {
+                          setSelectedWordIds(prev =>
+                            prev.includes(word.id)
+                              ? prev.filter(id => id !== word.id)
+                              : [...prev, word.id]
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : submittedQuery ? (
+                <div className={styles.emptyState}>
+                  <span className={styles.emptyIcon}>📚</span>
+                  <h3>Không tìm thấy từ nào</h3>
+                  <p>Thử tìm kiếm với từ khóa khác hoặc thêm từ mới vào từ điển</p>
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  {/* Blank empty state as requested */}
+                </div>
+              )}
+            </div>
+          </section>
+        )
+      }
 
       {/* Merge Action Bar */}
-      {isSelectionMode && selectedWordIds.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'var(--bg-secondary)',
-          borderTop: '2px solid var(--accent-blue)',
-          padding: '1rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '1rem',
-          zIndex: 1000,
-          boxShadow: '0 -4px 12px rgba(0,0,0,0.1)'
-        }}>
-          <span style={{ fontWeight: 'bold' }}>
-            {selectedWordIds.length} từ được chọn
-          </span>
-          <button
-            className="btn btn-primary"
-            onClick={handleMerge}
-            disabled={isMerging || isDeleting}
-            style={{
-              background: 'var(--accent-green)',
-              opacity: (isMerging || isDeleting) ? 0.7 : 1,
-              cursor: (isMerging || isDeleting) ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            {isMerging ? (
-              <>
-                <span className="loading-spinner" style={{ width: '1em', height: '1em', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
-                Đang hợp nhất...
-              </>
-            ) : (
-              <>🔗 Hợp nhất</>
-            )}
-          </button>
-          <button
-            className="btn"
-            onClick={handleDelete}
-            disabled={isMerging || isDeleting}
-            style={{
-              background: 'var(--accent-pink)',
-              color: 'white',
-              opacity: (isMerging || isDeleting) ? 0.7 : 1,
-              cursor: (isMerging || isDeleting) ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            {isDeleting ? (
-              <>
-                <span className="loading-spinner" style={{ width: '1em', height: '1em', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
-                Đang xóa...
-              </>
-            ) : (
-              <>🗑️ Xoá từ</>
-            )}
-          </button>
-          <button
-            className="btn"
-            onClick={() => setSelectedWordIds([])}
-            disabled={isMerging || isDeleting}
-          >
-            Xóa chọn (Clear)
-          </button>
-        </div>
-      )}
-      <Footer isHidden={words.length > 0 || !!searchQuery || !!selectedLetter} />
-    </div>
+      {
+        isSelectionMode && selectedWordIds.length > 0 && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'var(--bg-secondary)',
+            borderTop: '2px solid var(--accent-blue)',
+            padding: '1rem',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '1rem',
+            zIndex: 1000,
+            boxShadow: '0 -4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <span style={{ fontWeight: 'bold' }}>
+              {selectedWordIds.length} từ được chọn
+            </span>
+            <button
+              className="btn btn-primary"
+              onClick={handleMerge}
+              disabled={isMerging || isDeleting}
+              style={{
+                background: 'var(--accent-green)',
+                opacity: (isMerging || isDeleting) ? 0.7 : 1,
+                cursor: (isMerging || isDeleting) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              {isMerging ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '1em', height: '1em', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
+                  Đang hợp nhất...
+                </>
+              ) : (
+                <>🔗 Hợp nhất</>
+              )}
+            </button>
+            <button
+              className="btn"
+              onClick={handleDelete}
+              disabled={isMerging || isDeleting}
+              style={{
+                background: 'var(--accent-pink)',
+                color: 'white',
+                opacity: (isMerging || isDeleting) ? 0.7 : 1,
+                cursor: (isMerging || isDeleting) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              {isDeleting ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '1em', height: '1em', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
+                  Đang xóa...
+                </>
+              ) : (
+                <>🗑️ Xoá từ</>
+              )}
+            </button>
+            <button
+              className="btn"
+              onClick={() => setSelectedWordIds([])}
+              disabled={isMerging || isDeleting}
+            >
+              Xóa chọn (Clear)
+            </button>
+          </div>
+        )
+      }
+
+      <Footer isHidden={words.length > 0 || !!submittedQuery || !!selectedLetter} />
+    </div >
   );
 }
