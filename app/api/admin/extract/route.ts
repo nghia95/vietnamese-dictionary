@@ -18,10 +18,7 @@ export async function POST(request: NextRequest) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash-exp',
-            generationConfig: {
-                responseMimeType: 'application/json'
-            }
+            model: 'gemini-3-flash-preview',
         });
 
         const arrayBuffer = await file.arrayBuffer();

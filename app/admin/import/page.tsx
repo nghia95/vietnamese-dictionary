@@ -24,6 +24,7 @@ export default function ImportPage() {
     const [availableSources, setAvailableSources] = useState<string[]>([]);
     const [importProgress, setImportProgress] = useState(0);
     const [totalImportCount, setTotalImportCount] = useState(0);
+    const [extractProgress, setExtractProgress] = useState(0);
 
     useEffect(() => {
         const fetchSources = async () => {
@@ -59,6 +60,26 @@ export default function ImportPage() {
         if (!file) return;
 
         setIsThinking(true);
+        setExtractProgress(0);
+
+        // Simulated progress with decaying increment
+        const progressInterval = setInterval(() => {
+            setExtractProgress((prev) => {
+                if (prev >= 95) return prev;
+
+                let increment = 0;
+                if (prev < 30) {
+                    increment = Math.random() * 5 + 2; // Fast start
+                } else if (prev < 70) {
+                    increment = Math.random() * 2 + 1; // Medium pace
+                } else {
+                    increment = Math.random() * 0.5; // Very slow crawl at the end
+                }
+
+                return Math.min(prev + increment, 95);
+            });
+        }, 500); // Slower update tick
+
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -72,6 +93,10 @@ export default function ImportPage() {
             });
 
             const json = await res.json();
+
+            clearInterval(progressInterval);
+            setExtractProgress(100);
+
             if (json.data) {
                 setExtractedData(json.data);
                 // Auto-select all by default
@@ -85,6 +110,7 @@ export default function ImportPage() {
             console.error(err);
             alert('Trích xuất thất bại');
         } finally {
+            clearInterval(progressInterval);
             setIsThinking(false);
         }
     };
@@ -125,7 +151,7 @@ export default function ImportPage() {
         setTotalImportCount(dataToImport.length);
         setImportProgress(0);
 
-        const BATCH_SIZE = 5;
+        const BATCH_SIZE = 1; // Process one by one for smooth progress updates
         const allResults = [];
 
         try {
@@ -192,7 +218,15 @@ export default function ImportPage() {
                 </div>
                 {isThinking && (
                     <div className="mt-4 w-full">
-                        <progress className="progress progress-primary w-full"></progress>
+                        <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">Đang phân tích...</span>
+                            <span className="text-sm font-medium text-blue-600">{Math.round(extractProgress)}%</span>
+                        </div>
+                        <progress
+                            className="progress progress-primary w-full"
+                            value={extractProgress}
+                            max="100"
+                        ></progress>
                         <p className="mt-2 text-sm text-gray-500 text-center">Đang gửi đến Gemini AI... Quá trình này có thể mất vài giây.</p>
                     </div>
                 )}
