@@ -15,6 +15,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
 
+  // Autocomplete
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+
   // Selection mode for merge feature
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedWordIds, setSelectedWordIds] = useState<number[]>([]);
@@ -43,18 +48,95 @@ export default function Home() {
 
 
   useEffect(() => {
-    // Debounce search
+    // Only debounce suggestions, not word search
     const timer = setTimeout(() => {
-      fetchWords(searchQuery, selectedLetter);
+      if (searchQuery.trim()) {
+        fetchSuggestions(searchQuery);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedLetter]);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    // Fetch words only when letter filter changes
+    if (selectedLetter) {
+      fetchWords('', selectedLetter);
+    }
+  }, [selectedLetter]);
+
+  const fetchSuggestions = async (query: string) => {
+    try {
+      const response = await fetch(`/api/suggestions?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions((data.suggestions || []).length > 0);
+      setSelectedSuggestionIndex(-1);
+    } catch (error) {
+      console.error('Suggestions error:', error);
+    }
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (e.target.value) {
       setSelectedLetter(null); // Clear letter filter when searching
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    // Fetch words when suggestion is clicked
+    fetchWords(suggestion, null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      // Original Enter key logic for history
+      if (e.key === 'Enter' && session?.user && searchQuery.trim()) {
+        fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'SEARCH', query: searchQuery.trim() })
+        }).catch(console.error);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev =>
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedSuggestionIndex >= 0) {
+        handleSuggestionClick(suggestions[selectedSuggestionIndex]);
+      } else if (searchQuery.trim()) {
+        setShowSuggestions(false);
+        // Fetch words and log to history
+        fetchWords(searchQuery, null);
+        if (session?.user) {
+          fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'SEARCH', query: searchQuery.trim() })
+          }).catch(console.error);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
     }
   };
 
@@ -170,24 +252,33 @@ export default function Home() {
           </p>
 
           <div className={`${styles.searchContainer} animate-fade-in`}>
-            <div className={styles.searchBox}>
+            <div className={styles.searchBox} style={{ position: 'relative' }}>
               <span className={styles.searchIcon}>🔍</span>
               <input
                 type="text"
                 placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && session?.user && searchQuery.trim()) {
-                    fetch('/api/history', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ type: 'SEARCH', query: searchQuery.trim() })
-                    }).catch(console.error);
-                  }
-                }}
+                onKeyDown={handleKeyDown}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 className={styles.searchInput}
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className={styles.suggestionsDropdown}>
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className={`${styles.suggestionItem} ${index === selectedSuggestionIndex ? styles.suggestionSelected : ''}`}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                    >
+                      <span className={styles.suggestionIcon}>🔍</span>
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

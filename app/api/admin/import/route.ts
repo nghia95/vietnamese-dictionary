@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
         const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
         const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-        const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: 'application/json' } }) : null;
+        const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp', generationConfig: { responseMimeType: 'application/json' } }) : null;
 
         const effectiveSource = sourceName && sourceName.trim() ? sourceName.trim() : 'AI Import';
         const results = [];

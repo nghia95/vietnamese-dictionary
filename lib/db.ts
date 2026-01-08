@@ -162,6 +162,20 @@ export async function initializeDatabase() {
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_word_id ON comments(word_id)`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id)`);
 
+  // Create history table if not exists (fixed)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      word_id INTEGER,
+      query TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    )
+  `);
+
   // Set admin user
   const adminEmail = 'nghiahcmut95@gmail.com';
   const adminUser = await client.execute({
@@ -322,8 +336,8 @@ export async function searchWords(query: string, letter?: string): Promise<Word[
         LIMIT 1000
       `,
     args: [
-      `%${query.toLowerCase()}%`,
-      `%${query}%`,
+      `${query.toLowerCase()}%`,
+      `${query}%`,
       ...(letter ? getVietnameseVariations(letter) : [])
     ]
   });
@@ -846,6 +860,22 @@ export async function getAllSettings(): Promise<Record<string, string>> {
     settings[row.key as string] = row.value as string;
   }
   return settings;
+}
+
+// Get word suggestions for autocomplete
+export async function getWordSuggestions(query: string, limit: number = 10): Promise<string[]> {
+  const result = await client.execute({
+    sql: `
+      SELECT DISTINCT word 
+      FROM words 
+      WHERE normalized_word LIKE ? 
+      ORDER BY sort_key ASC 
+      LIMIT ?
+    `,
+    args: [`${query.toLowerCase()}%`, limit]
+  });
+
+  return result.rows.map(row => row.word as string);
 }
 
 export { client };

@@ -22,6 +22,8 @@ export default function ImportPage() {
     const [importResults, setImportResults] = useState<any[]>([]);
     const [sourceName, setSourceName] = useState('');
     const [availableSources, setAvailableSources] = useState<string[]>([]);
+    const [importProgress, setImportProgress] = useState(0);
+    const [totalImportCount, setTotalImportCount] = useState(0);
 
     useEffect(() => {
         const fetchSources = async () => {
@@ -117,20 +119,38 @@ export default function ImportPage() {
         }
 
         setIsImporting(true);
+        setImportResults([]);
+
         const dataToImport = extractedData.filter((_, i) => selectedIndices.has(i));
+        setTotalImportCount(dataToImport.length);
+        setImportProgress(0);
+
+        const BATCH_SIZE = 5;
+        const allResults = [];
 
         try {
-            const res = await fetch('/api/admin/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imports: dataToImport, sourceName }),
-            });
-            const json = await res.json();
-            setImportResults(json.results || []);
+            for (let i = 0; i < dataToImport.length; i += BATCH_SIZE) {
+                const batch = dataToImport.slice(i, i + BATCH_SIZE);
+
+                const res = await fetch('/api/admin/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imports: batch, sourceName }),
+                });
+
+                const json = await res.json();
+                const batchResults = json.results || [];
+                allResults.push(...batchResults);
+
+                // Update progress immediately after batch completes
+                setImportResults(prev => [...prev, ...batchResults]);
+                setImportProgress(Math.min(i + BATCH_SIZE, dataToImport.length));
+            }
+
             alert('Đã xử lý nhập liệu!');
         } catch (err) {
             console.error(err);
-            alert('Nhập liệu thất bại');
+            alert('Nhập liệu thất bại (có thể một số mục đã được nhập)');
         } finally {
             setIsImporting(false);
         }
@@ -170,7 +190,12 @@ export default function ImportPage() {
                         </button>
                     </div>
                 </div>
-                {isThinking && <p className="mt-2 text-sm text-gray-500">Đang gửi đến Gemini AI... Quá trình này có thể mất vài giây.</p>}
+                {isThinking && (
+                    <div className="mt-4 w-full">
+                        <progress className="progress progress-primary w-full"></progress>
+                        <p className="mt-2 text-sm text-gray-500 text-center">Đang gửi đến Gemini AI... Quá trình này có thể mất vài giây.</p>
+                    </div>
+                )}
             </div>
 
             {extractedData.length > 0 && (
@@ -199,6 +224,22 @@ export default function ImportPage() {
                             {isImporting ? 'Đang nhập...' : `Nhập ${selectedIndices.size} mục đã chọn`}
                         </button>
                     </div>
+
+                    {isImporting && (
+                        <div className="mb-4">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-blue-700">Đang tiến hành nhập liệu...</span>
+                                <span className="text-sm font-medium text-blue-700">{Math.round((importProgress / totalImportCount) * 100)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                <div
+                                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                                    style={{ width: `${(importProgress / totalImportCount) * 100}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 text-right">{importProgress} / {totalImportCount} mục</p>
+                        </div>
+                    )}
 
                     <div className="overflow-x-auto">
                         <table className="table w-full">
@@ -292,7 +333,7 @@ export default function ImportPage() {
 
             {importResults.length > 0 && (
                 <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-bold mb-4">Kết quả nhập liệu</h3>
+                    <h3 className="text-lg font-bold mb-4">Kết quả nhập liệu ({importResults.length})</h3>
                     <div className="max-h-60 overflow-y-auto">
                         {importResults.map((res, i) => (
                             <div key={i} className={`text-sm ${res.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
