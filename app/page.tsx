@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WordCard from '@/components/WordCard';
 import AlphabetFilter from '@/components/AlphabetFilter';
 import Footer from '@/components/Footer';
@@ -21,6 +21,10 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const CARDS_PER_PAGE = 20;
+
   // Selection mode for merge feature
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedWordIds, setSelectedWordIds] = useState<number[]>([]);
@@ -31,6 +35,9 @@ export default function Home() {
   const [heroTitle, setHeroTitle] = useState('Từ điển tiếng Việt');
   const [heroSubtitle, setHeroSubtitle] = useState('Khám phá và học tiếng Việt một cách hiện đại');
   const [searchPlaceholder, setSearchPlaceholder] = useState('Tìm kiếm từ vựng tiếng Việt...');
+
+  // Ref for scrolling to top of results
+  const resultsRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     // Fetch settings
@@ -54,6 +61,7 @@ export default function Home() {
       setShowSuggestions(false);
       setIsSelectionMode(false);
       setSelectedWordIds([]);
+      setCurrentPage(1);
     };
 
     window.addEventListener('reset-home-state', handleReset);
@@ -129,6 +137,7 @@ export default function Home() {
     setSubmittedQuery(suggestion);
     setShowSuggestions(false);
     setSuggestions([]);
+    setCurrentPage(1);
     // Fetch words when suggestion is clicked
     fetchWords(suggestion, null);
   };
@@ -161,6 +170,7 @@ export default function Home() {
       } else if (searchQuery.trim()) {
         setShowSuggestions(false);
         setSubmittedQuery(searchQuery);
+        setCurrentPage(1);
         // Fetch words and log to history
         fetchWords(searchQuery, null);
         if (session?.user) {
@@ -180,6 +190,7 @@ export default function Home() {
     setSelectedLetter(letter);
     setSearchQuery(''); // Clear search when filtering by letter
     setSubmittedQuery('');
+    setCurrentPage(1);
   };
 
   const fetchWords = async (query: string, letter: string | null) => {
@@ -201,6 +212,14 @@ export default function Home() {
       console.error('Search error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    // Scroll to top of results
+    if (resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -271,11 +290,136 @@ export default function Home() {
     }
   };
 
-  // ... (I will switch to multi_replace in the next turn)
+  // Pagination component for reuse
+  const PaginationControls = ({ compact = false }: { compact?: boolean }) => {
+    if (words.length <= CARDS_PER_PAGE) return null;
 
-  // WAIT, I am the model. I can just output the tool call I want.
-  // I will switch to `multi_replace_file_content`.
+    const totalPages = Math.ceil(words.length / CARDS_PER_PAGE);
 
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: compact ? 'flex-end' : 'center',
+        alignItems: 'center',
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      }}>
+        {!compact && (
+          <button
+            className="btn"
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            style={{
+              opacity: currentPage === 1 ? 0.5 : 1,
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              fontSize: compact ? '0.875rem' : undefined,
+              padding: compact ? '0.25rem 0.5rem' : undefined
+            }}
+          >
+            ← Trước
+          </button>
+        )}
+
+        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+          {(() => {
+            const pages = [];
+
+            // Show first page
+            if (totalPages > 0) {
+              pages.push(
+                <button
+                  key={1}
+                  className="btn"
+                  onClick={() => handlePageChange(1)}
+                  style={{
+                    background: currentPage === 1 ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                    color: currentPage === 1 ? 'white' : 'var(--text-primary)',
+                    minWidth: compact ? '2rem' : '2.5rem',
+                    fontSize: compact ? '0.875rem' : undefined,
+                    padding: compact ? '0.25rem 0.5rem' : undefined
+                  }}
+                >
+                  1
+                </button>
+              );
+            }
+
+            // Show ellipsis if needed
+            if (currentPage > 3 && !compact) {
+              pages.push(<span key="ellipsis1" style={{ padding: '0 0.25rem' }}>...</span>);
+            }
+
+            // Show pages around current page
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+              pages.push(
+                <button
+                  key={i}
+                  className="btn"
+                  onClick={() => handlePageChange(i)}
+                  style={{
+                    background: currentPage === i ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                    color: currentPage === i ? 'white' : 'var(--text-primary)',
+                    minWidth: compact ? '2rem' : '2.5rem',
+                    fontSize: compact ? '0.875rem' : undefined,
+                    padding: compact ? '0.25rem 0.5rem' : undefined
+                  }}
+                >
+                  {i}
+                </button>
+              );
+            }
+
+            // Show ellipsis if needed
+            if (currentPage < totalPages - 2 && !compact) {
+              pages.push(<span key="ellipsis2" style={{ padding: '0 0.25rem' }}>...</span>);
+            }
+
+            // Show last page
+            if (totalPages > 1) {
+              pages.push(
+                <button
+                  key={totalPages}
+                  className="btn"
+                  onClick={() => handlePageChange(totalPages)}
+                  style={{
+                    background: currentPage === totalPages ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                    color: currentPage === totalPages ? 'white' : 'var(--text-primary)',
+                    minWidth: compact ? '2rem' : '2.5rem',
+                    fontSize: compact ? '0.875rem' : undefined,
+                    padding: compact ? '0.25rem 0.5rem' : undefined
+                  }}
+                >
+                  {totalPages}
+                </button>
+              );
+            }
+
+            return pages;
+          })()}
+        </div>
+
+        {!compact && (
+          <>
+            <button
+              className="btn"
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                opacity: currentPage === totalPages ? 0.5 : 1,
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Sau →
+            </button>
+
+            <span style={{ marginLeft: '1rem', color: 'var(--text-secondary)' }}>
+              Trang {currentPage} / {totalPages}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={`${styles.homePage} ${words.length > 0 || submittedQuery || selectedLetter ? styles.homePageActive : ''}`}>
@@ -329,7 +473,7 @@ export default function Home() {
 
       {
         (words.length > 0 || submittedQuery || selectedLetter) && (
-          <section className={styles.resultsSection}>
+          <section ref={resultsRef} className={styles.resultsSection}>
             <div className="container">
               {isLoading ? (
                 <div className={styles.loadingContainer}>
@@ -339,14 +483,20 @@ export default function Home() {
               ) : words.length > 0 ? (
                 <>
                   {submittedQuery && (
-                    <h2 className={styles.resultsTitle}>
-                      Kết quả cho "{submittedQuery}" ({words.length})
-                    </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h2 className={styles.resultsTitle}>
+                        Kết quả cho "{submittedQuery}" ({words.length})
+                      </h2>
+                      <PaginationControls compact={true} />
+                    </div>
                   )}
                   {selectedLetter && (
-                    <h2 className={styles.resultsTitle}>
-                      Từ bắt đầu bằng "{selectedLetter}" ({words.length})
-                    </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h2 className={styles.resultsTitle}>
+                        Từ bắt đầu bằng "{selectedLetter}" ({words.length})
+                      </h2>
+                      <PaginationControls compact={true} />
+                    </div>
                   )}
 
                   {/* Selection Mode Toggle for Admin/Moderator */}
@@ -374,23 +524,33 @@ export default function Home() {
                   )}
 
                   <div className={styles.wordsGrid}>
-                    {words.map((word) => (
-                      <WordCard
-                        key={word.id}
-                        word={word}
-                        currentUserRole={session?.user?.role}
-                        isSelectable={isSelectionMode}
-                        isSelected={selectedWordIds.includes(word.id)}
-                        onToggleSelect={() => {
-                          setSelectedWordIds(prev =>
-                            prev.includes(word.id)
-                              ? prev.filter(id => id !== word.id)
-                              : [...prev, word.id]
-                          );
-                        }}
-                      />
-                    ))}
+                    {(() => {
+                      const totalPages = Math.ceil(words.length / CARDS_PER_PAGE);
+                      const startIndex = (currentPage - 1) * CARDS_PER_PAGE;
+                      const endIndex = startIndex + CARDS_PER_PAGE;
+                      const currentWords = words.slice(startIndex, endIndex);
+
+                      return currentWords.map((word) => (
+                        <WordCard
+                          key={word.id}
+                          word={word}
+                          currentUserRole={session?.user?.role}
+                          isSelectable={isSelectionMode}
+                          isSelected={selectedWordIds.includes(word.id)}
+                          onToggleSelect={() => {
+                            setSelectedWordIds(prev =>
+                              prev.includes(word.id)
+                                ? prev.filter(id => id !== word.id)
+                                : [...prev, word.id]
+                            );
+                          }}
+                        />
+                      ));
+                    })()}
                   </div>
+
+                  {/* Pagination Controls - Bottom */}
+                  <PaginationControls />
                 </>
               ) : submittedQuery ? (
                 <div className={styles.emptyState}>
