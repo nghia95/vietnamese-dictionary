@@ -53,16 +53,30 @@ export default function Header() {
     return (
         <header className={styles.header}>
             <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
-                <a href="/" className={styles.logo} style={logoType === 'text' ? { fontSize: `${Math.max(16, parseInt(logoSize) / 2)}px` } : {}}>
-                    {logoType === 'image' && logoImage ? (
-                        <img src={logoImage} alt={logoText} style={{ height: `${logoSize}px`, width: 'auto', objectFit: 'contain' }} />
-                    ) : (
-                        <>
-                            <span className={styles.logoIcon}>📖</span>
-                            {logoText}
-                        </>
-                    )}
-                </a>
+                <div
+                    className={styles.logo}
+                    style={{
+                        cursor: 'pointer',
+                        ...(logoType === 'text' ? { fontSize: `${Math.max(16, parseInt(logoSize) / 2)}px` } : {})
+                    }}
+                >
+                    <Link href="/" onClick={(e) => {
+                        if (window.location.pathname === '/') {
+                            e.preventDefault();
+                            window.dispatchEvent(new CustomEvent('reset-home-state'));
+                        }
+                        // Otherwise let Link handle the navigation
+                    }} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {logoType === 'image' && logoImage ? (
+                            <img src={logoImage} alt={logoText} style={{ height: `${logoSize}px`, width: 'auto', objectFit: 'contain' }} />
+                        ) : (
+                            <>
+                                <span className={styles.logoIcon}>📖</span>
+                                {logoText}
+                            </>
+                        )}
+                    </Link>
+                </div>
 
                 <nav className={styles.nav}>
                     {status === 'loading' ? (

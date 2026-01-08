@@ -43,6 +43,19 @@ export default function Home() {
         }
       })
       .catch(console.error);
+
+    // Listen for reset home state event
+    const handleReset = () => {
+      setSearchQuery('');
+      setSelectedLetter(null);
+      setWords([]);
+      setShowSuggestions(false);
+      setIsSelectionMode(false);
+      setSelectedWordIds([]);
+    };
+
+    window.addEventListener('reset-home-state', handleReset);
+    return () => window.removeEventListener('reset-home-state', handleReset);
   }, []);
 
   // Control page scrolling based on content
