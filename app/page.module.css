@@ -1,11 +1,45 @@
 .homePage {
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.homePageActive {
+  max-height: none;
+  height: auto;
+  overflow: visible;
 }
 
 .hero {
-  padding: 4rem 0 3rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  padding-bottom: 20vh;
+  /* Move content higher */
   text-align: center;
   background: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.1) 0%, transparent 60%);
+  overflow: visible;
+  height: 100%;
+}
+
+.hero .container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 2rem;
+}
+
+.heroActive {
+  flex: 0 0 auto;
+  padding: 2rem 0;
+  padding-bottom: 2rem;
+  /* Reset padding for active state */
+  justify-content: flex-start;
+  height: auto;
 }
 
 .heroTitle {
@@ -59,7 +93,10 @@
 }
 
 .resultsSection {
+  flex: 1;
   padding: 3rem 0 4rem;
+  overflow: visible;
+  /* Let page scroll */
 }
 
 .resultsTitle {

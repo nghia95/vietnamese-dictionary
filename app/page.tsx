@@ -45,6 +45,25 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
+  // Control page scrolling based on content
+  useEffect(() => {
+    if (words.length === 0 && !searchQuery && !selectedLetter) {
+      // Disable scrolling on empty home page
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Enable scrolling when showing results
+      document.documentElement.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
+    }
+
+    // Cleanup
+    return () => {
+      document.documentElement.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
+    };
+  }, [words.length, searchQuery, selectedLetter]);
+
 
 
   useEffect(() => {
@@ -241,9 +260,9 @@ export default function Home() {
 
 
   return (
-    <div className={styles.homePage}>
-      <section className={styles.hero}>
-        <div className="container">
+    <div className={`${styles.homePage} ${words.length > 0 || searchQuery || selectedLetter ? styles.homePageActive : ''}`}>
+      <section className={`${styles.hero} ${words.length > 0 || searchQuery || selectedLetter ? styles.heroActive : ''}`}>
+        <div className="container" style={{ width: '100%', maxWidth: '1200px', padding: '0 2rem' }}>
           <h1 className={`${styles.heroTitle} animate-fade-in`}>
             {heroTitle}
           </h1>
@@ -281,87 +300,91 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          <div className="animate-fade-in" style={{ marginTop: '2rem' }}>
+            <AlphabetFilter selectedLetter={selectedLetter} onSelectLetter={handleLetterSelect} />
+          </div>
         </div>
       </section>
 
-      <section className={styles.resultsSection}>
-        <div className="container">
-          <AlphabetFilter selectedLetter={selectedLetter} onSelectLetter={handleLetterSelect} />
-
-          {isLoading ? (
-            <div className={styles.loadingContainer}>
-              <div className="loading"></div>
-              <p>Đang tìm kiếm...</p>
-            </div>
-          ) : words.length > 0 ? (
-            <>
-              {searchQuery && (
-                <h2 className={styles.resultsTitle}>
-                  Kết quả cho "{searchQuery}" ({words.length})
-                </h2>
-              )}
-              {selectedLetter && (
-                <h2 className={styles.resultsTitle}>
-                  Từ bắt đầu bằng "{selectedLetter}" ({words.length})
-                </h2>
-              )}
-
-              {/* Selection Mode Toggle for Admin/Moderator */}
-              {(session?.user?.role === 'admin' || session?.user?.role === 'moderator') && (
-                <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      setIsSelectionMode(!isSelectionMode);
-                      setSelectedWordIds([]);
-                    }}
-                    style={{
-                      background: isSelectionMode ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                      color: isSelectionMode ? 'white' : 'var(--text-primary)'
-                    }}
-                  >
-                    {isSelectionMode ? '✓ Chế độ chọn' : '☑ Chế độ chọn'}
-                  </button>
-                  {isSelectionMode && selectedWordIds.length > 0 && (
-                    <span style={{ color: 'var(--text-secondary)' }}>
-                      Đã chọn: {selectedWordIds.length}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <div className={styles.wordsGrid}>
-                {words.map((word) => (
-                  <WordCard
-                    key={word.id}
-                    word={word}
-                    currentUserRole={session?.user?.role}
-                    isSelectable={isSelectionMode}
-                    isSelected={selectedWordIds.includes(word.id)}
-                    onToggleSelect={() => {
-                      setSelectedWordIds(prev =>
-                        prev.includes(word.id)
-                          ? prev.filter(id => id !== word.id)
-                          : [...prev, word.id]
-                      );
-                    }}
-                  />
-                ))}
+      {(words.length > 0 || searchQuery || selectedLetter) && (
+        <section className={styles.resultsSection}>
+          <div className="container">
+            {isLoading ? (
+              <div className={styles.loadingContainer}>
+                <div className="loading"></div>
+                <p>Đang tìm kiếm...</p>
               </div>
-            </>
-          ) : searchQuery ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📚</span>
-              <h3>Không tìm thấy từ nào</h3>
-              <p>Thử tìm kiếm với từ khóa khác hoặc thêm từ mới vào từ điển</p>
-            </div>
-          ) : (
-            <div className={styles.emptyState}>
-              {/* Blank empty state as requested */}
-            </div>
-          )}
-        </div>
-      </section>
+            ) : words.length > 0 ? (
+              <>
+                {searchQuery && (
+                  <h2 className={styles.resultsTitle}>
+                    Kết quả cho "{searchQuery}" ({words.length})
+                  </h2>
+                )}
+                {selectedLetter && (
+                  <h2 className={styles.resultsTitle}>
+                    Từ bắt đầu bằng "{selectedLetter}" ({words.length})
+                  </h2>
+                )}
+
+                {/* Selection Mode Toggle for Admin/Moderator */}
+                {(session?.user?.role === 'admin' || session?.user?.role === 'moderator') && (
+                  <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setIsSelectionMode(!isSelectionMode);
+                        setSelectedWordIds([]);
+                      }}
+                      style={{
+                        background: isSelectionMode ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                        color: isSelectionMode ? 'white' : 'var(--text-primary)'
+                      }}
+                    >
+                      {isSelectionMode ? '✓ Chế độ chọn' : '☑ Chế độ chọn'}
+                    </button>
+                    {isSelectionMode && selectedWordIds.length > 0 && (
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        Đã chọn: {selectedWordIds.length}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.wordsGrid}>
+                  {words.map((word) => (
+                    <WordCard
+                      key={word.id}
+                      word={word}
+                      currentUserRole={session?.user?.role}
+                      isSelectable={isSelectionMode}
+                      isSelected={selectedWordIds.includes(word.id)}
+                      onToggleSelect={() => {
+                        setSelectedWordIds(prev =>
+                          prev.includes(word.id)
+                            ? prev.filter(id => id !== word.id)
+                            : [...prev, word.id]
+                        );
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : searchQuery ? (
+              <div className={styles.emptyState}>
+                <span className={styles.emptyIcon}>📚</span>
+                <h3>Không tìm thấy từ nào</h3>
+                <p>Thử tìm kiếm với từ khóa khác hoặc thêm từ mới vào từ điển</p>
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                {/* Blank empty state as requested */}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Merge Action Bar */}
       {isSelectionMode && selectedWordIds.length > 0 && (
@@ -437,7 +460,7 @@ export default function Home() {
           </button>
         </div>
       )}
-      <Footer isHidden={!!searchQuery || !!selectedLetter} />
+      <Footer isHidden={words.length > 0 || !!searchQuery || !!selectedLetter} />
     </div>
   );
 }
