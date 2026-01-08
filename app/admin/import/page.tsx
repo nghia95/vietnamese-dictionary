@@ -13,6 +13,8 @@ interface ExtractedItem {
 }
 
 export default function ImportPage() {
+    // Add a key to reset file inputs
+    const [resetKey, setResetKey] = useState(0);
     const [file, setFile] = useState<File | null>(null);
     const [guideFile, setGuideFile] = useState<File | null>(null);
     const [isThinking, setIsThinking] = useState(false);
@@ -174,6 +176,18 @@ export default function ImportPage() {
             }
 
             alert('Đã xử lý nhập liệu!');
+
+            // Reset to initial state
+            setFile(null);
+            setGuideFile(null);
+            setExtractedData([]);
+            setSelectedIndices(new Set());
+            setImportResults([]);
+            setImportProgress(0);
+            setTotalImportCount(0);
+            setSourceName('');
+            setResetKey(prev => prev + 1); // Force re-render of file inputs to clear them
+
         } catch (err) {
             console.error(err);
             alert('Nhập liệu thất bại (có thể một số mục đã được nhập)');
@@ -192,6 +206,7 @@ export default function ImportPage() {
                         <div className="mb-8">
                             <label className="label text-sm font-semibold">Tệp từ điển (Ảnh)</label>
                             <VietnameseFileInput
+                                key={`file-${resetKey}`}
                                 accept="image/*"
                                 onChange={handleFileChange}
                                 className="w-full max-w-xs"
@@ -200,6 +215,7 @@ export default function ImportPage() {
                         <div>
                             <label className="label text-sm font-semibold">Giải nghĩa ký hiệu (Không bắt buộc, Ảnh)</label>
                             <VietnameseFileInput
+                                key={`guide-${resetKey}`}
                                 accept="image/*"
                                 onChange={handleGuideFileChange}
                                 className="w-full max-w-xs"
@@ -219,7 +235,10 @@ export default function ImportPage() {
                 {isThinking && (
                     <div className="mt-4 w-full">
                         <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium text-gray-700">Đang phân tích...</span>
+                            <div className="flex items-center gap-2">
+                                <span className="loading loading-spinner loading-xs text-primary"></span>
+                                <span className="text-sm font-medium text-gray-700">Đang phân tích...</span>
+                            </div>
                             <span className="text-sm font-medium text-blue-600">{Math.round(extractProgress)}%</span>
                         </div>
                         <progress
@@ -263,7 +282,10 @@ export default function ImportPage() {
                         <div className="mb-4">
                             <div className="flex justify-between mb-1">
                                 <span className="text-sm font-medium text-blue-700">Đang tiến hành nhập liệu...</span>
-                                <span className="text-sm font-medium text-blue-700">{Math.round((importProgress / totalImportCount) * 100)}%</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="loading loading-spinner loading-xs text-blue-700"></span>
+                                    <span className="text-sm font-medium text-blue-700">{Math.round((importProgress / totalImportCount) * 100)}%</span>
+                                </div>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2.5">
                                 <div
