@@ -188,6 +188,14 @@ export async function initializeDatabase() {
     )
   `);
 
+  // Add views column if it doesn't exist (for existing databases)
+  try {
+    await client.execute(`ALTER TABLE words ADD COLUMN views INTEGER DEFAULT 0`);
+    console.log('✅ Added views column to words table');
+  } catch {
+    // Column already exists, ignore
+  }
+
   // Set admin user
   const adminEmail = 'nghiahcmut95@gmail.com';
   const adminUser = await client.execute({
@@ -201,6 +209,49 @@ export async function initializeDatabase() {
     });
     console.log(`✅ Set ${adminEmail} as ADMIN`);
   }
+}
+
+// --- Stats Helpers ---
+
+export async function incrementWordView(wordId: number) {
+  try {
+    await client.execute({
+      sql: 'UPDATE words SET views = COALESCE(views, 0) + 1 WHERE id = ?',
+      args: [wordId]
+    });
+  } catch (error) {
+    console.error('Error incrementing word view:', error);
+  }
+}
+
+export async function getGlobalStats() {
+  const [usersResult, wordsResult, definitionsResult, viewsResult, activityResult] = await Promise.all([
+    client.execute('SELECT COUNT(*) as count FROM users'),
+    client.execute('SELECT COUNT(*) as count FROM words'),
+    client.execute('SELECT COUNT(*) as count FROM definitions'),
+    client.execute('SELECT SUM(views) as total_views FROM words'),
+    client.execute('SELECT COUNT(*) as count FROM activity_logs') // or maybe just count logs
+  ]);
+
+  const topWordsResult = await client.execute({
+    sql: 'SELECT id, word, views, image, phonetic FROM words ORDER BY views DESC LIMIT 10',
+    args: []
+  });
+
+  return {
+    totalUsers: usersResult.rows[0]?.count as number || 0,
+    totalWords: wordsResult.rows[0]?.count as number || 0,
+    totalDefinitions: definitionsResult.rows[0]?.count as number || 0,
+    totalViews: viewsResult.rows[0]?.total_views as number || 0,
+    totalActivities: activityResult.rows[0]?.count as number || 0,
+    popularWords: topWordsResult.rows.map(row => ({
+      id: row.id as number,
+      word: row.word as string,
+      views: row.views as number || 0,
+      image: row.image as string | null,
+      phonetic: row.phonetic as string | null
+    }))
+  };
 }
 
 // --- Comment & Feedback Helpers ---

@@ -118,6 +118,25 @@ export default function Header() {
                                 </div>
                             )}
 
+                            {/* Stats Link */}
+                            <Link
+                                href="/stats"
+                                className={`btn`}
+                                style={{
+                                    textDecoration: 'none',
+                                    color: 'var(--text-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    border: '1px solid transparent',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    transition: 'background 0.2s'
+                                }}
+                            >
+                                📊 Thống kê
+                            </Link>
+
                             {/* User Dropdown */}
                             <div className={styles.dropdownContainer} ref={dropdownRef}>
                                 <button

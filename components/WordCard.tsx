@@ -150,6 +150,8 @@ export default function WordCard({ word, currentUserRole, isSelectable, isSelect
                                     body: JSON.stringify({ type: 'VIEW', wordId: word.id })
                                 }).catch(console.error);
                             }
+                            // Increment global view count
+                            fetch(`/api/words/${word.id}/view`, { method: 'POST' }).catch(console.error);
                         }}
                         title="Xem toàn màn hình">
                         ⤢
