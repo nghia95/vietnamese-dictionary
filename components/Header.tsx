@@ -208,6 +208,13 @@ export default function Header() {
                                                 >
                                                     📚 Tài liệu tham khảo
                                                 </Link>
+                                                <Link
+                                                    href="/admin/types"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => setIsDropdownOpen(false)}
+                                                >
+                                                    🏷️ Quản lý Loại từ
+                                                </Link>
                                                 {isAdmin && (
                                                     <Link
                                                         href="/admin/activity"

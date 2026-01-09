@@ -786,6 +786,63 @@ export async function updateSourceName(oldName: string, newName: string, actorId
   return result.rowsAffected;
 }
 
+
+
+// Initialize database tables
+// ... (Adding table creation to initializeDatabase for future setup)
+// Note: We need to insert this into initializeDatabase function, but for now we update helpers.
+
+export async function getDistinctWordTypes(): Promise<string[]> {
+  const result = await client.execute('SELECT name FROM word_types');
+  const types = result.rows.map(row => row.name as string);
+  return types.sort((a, b) => a.localeCompare(b, 'vi'));
+}
+
+export async function updateWordTypeName(oldName: string, newName: string, actorId?: number): Promise<number> {
+  // 1. Update all definitions using the old type
+  const defResult = await client.execute({
+    sql: 'UPDATE definitions SET type = ? WHERE type = ?',
+    args: [newName, oldName]
+  });
+
+  // 2. Ensure new type exists in master list
+  await client.execute({
+    sql: 'INSERT OR IGNORE INTO word_types (name) VALUES (?)',
+    args: [newName]
+  });
+
+  // 3. Remove old type from master list
+  await client.execute({
+    sql: 'DELETE FROM word_types WHERE name = ?',
+    args: [oldName]
+  });
+
+  if (actorId && defResult.rowsAffected > 0) {
+    await logActivity(actorId, 'UPDATE_WORD_TYPE', `Đổi tên loại từ '${oldName}' thành '${newName}'`);
+  }
+
+  return defResult.rowsAffected;
+}
+
+
+
+export async function createWordType(name: string, actorId?: number): Promise<boolean> {
+  try {
+    const result = await client.execute({
+      sql: 'INSERT INTO word_types (name) VALUES (?)',
+      args: [name]
+    });
+
+    if (actorId && result.rowsAffected > 0) {
+      await logActivity(actorId, 'CREATE_WORD_TYPE', `Thêm loại từ mới: ${name}`);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error creating word type:', error);
+    return false; // Likely duplicate
+  }
+}
+
 export async function createUser(email: string, passwordHash: string, name: string) {
   return await client.execute({
     sql: 'INSERT INTO users (email, password_hash, name, email_verified) VALUES (?, ?, ?, 1)',
