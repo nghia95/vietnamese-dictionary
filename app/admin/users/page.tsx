@@ -164,11 +164,13 @@ export default function AdminUsersPage() {
                                 const isSelf = session?.user?.email === user.email;
                                 const isTargetAdmin = user.role === 'admin';
                                 const isTargetMod = user.role === 'moderator';
+                                const isSuperAdmin = user.email === 'nghiahcmut95@gmail.com';
 
                                 // Ban logic:
                                 // Admin can ban anyone (except self/other admin implicitly safe by UI but API handled).
                                 // Mod can ban users. Mod CANNOT ban Admin or Mod.
-                                const canBan = !isSelf && !isTargetAdmin && (currentUserRole === 'admin' || (currentUserRole === 'moderator' && !isTargetMod));
+                                // Super Admin cannot be banned by anyone.
+                                const canBan = !isSelf && !isSuperAdmin && !isTargetAdmin && (currentUserRole === 'admin' || (currentUserRole === 'moderator' && !isTargetMod));
 
                                 return (
                                     <tr key={user.id} style={{ borderTop: '1px solid #e5e7eb' }}>
@@ -200,8 +202,8 @@ export default function AdminUsersPage() {
                                                     <select
                                                         value={user.role}
                                                         onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
-                                                        disabled={isSelf}
-                                                        style={{ padding: '0.25rem', borderRadius: '0.25rem', border: '1px solid #d1d5db' }}
+                                                        disabled={isSelf || isSuperAdmin}
+                                                        style={{ padding: '0.25rem', borderRadius: '0.25rem', border: '1px solid #d1d5db', opacity: (isSelf || isSuperAdmin) ? 0.5 : 1 }}
                                                     >
                                                         <option value="user">User</option>
                                                         <option value="moderator">Moderator</option>
@@ -220,8 +222,8 @@ export default function AdminUsersPage() {
                                                 {canDeleteUsers && (
                                                     <button
                                                         onClick={() => handleDeleteUser(user.id)}
-                                                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#dc2626', color: 'white', cursor: 'pointer' }}
-                                                        disabled={isSelf}
+                                                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', borderRadius: '0.25rem', border: '1px solid #fca5a5', background: '#dc2626', color: 'white', cursor: 'pointer', opacity: (isSelf || isSuperAdmin) ? 0.5 : 1 }}
+                                                        disabled={isSelf || isSuperAdmin}
                                                     >
                                                         Xóa
                                                     </button>

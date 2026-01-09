@@ -26,6 +26,11 @@ export async function PATCH(
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
+        // Super Admin Protection
+        if (targetUser.email === 'nghiahcmut95@gmail.com') {
+            return NextResponse.json({ error: 'Cannot ban Super Admin' }, { status: 403 });
+        }
+
         // Prevent Moderator from banning Admin or other Moderator
         if (session.user.role === 'moderator' && (targetUser.role === 'admin' || targetUser.role === 'moderator')) {
             return NextResponse.json({ error: 'Unauthorized: Moderators cannot ban Admins or Moderators' }, { status: 403 });

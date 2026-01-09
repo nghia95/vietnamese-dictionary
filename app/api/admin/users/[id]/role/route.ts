@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { updateUserRole } from '@/lib/db';
+import { updateUserRole, getUserById } from '@/lib/db';
 import { auth } from '@/auth';
 
 export async function PATCH(
@@ -17,6 +17,12 @@ export async function PATCH(
         const { id } = await params;
         const userId = parseInt(id);
         const { role } = await request.json();
+
+        // Check if target user is Super Admin
+        const targetUser = await getUserById(userId);
+        if (targetUser && targetUser.email === 'nghiahcmut95@gmail.com') {
+            return NextResponse.json({ error: 'Cannot change role of Super Admin' }, { status: 403 });
+        }
 
         if (!role || (role !== 'admin' && role !== 'user' && role !== 'moderator')) {
             return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
