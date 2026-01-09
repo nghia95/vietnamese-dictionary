@@ -80,6 +80,11 @@ A modern, full-stack Vietnamese dictionary web application built with Next.js 14
 ### Moderator & Admin Features
 1.  **Edit Any Word (Moderator+)**: Moderators sees an edit pencil (✏️) on *all* word cards to fix errors.
 2.  **User Management (Admin Only)**: Navigate to `/admin/users` to assign roles or ban users.
+3.  **Data Management (Admin/Mod)**:
+    *   **Manage Sources**: Standardize source names globally.
+    *   **Manage Word Types**: Create, rename, and manage word types (e.g., Noun, Verb) with automatic Vietnamese alphabetical sorting.
+4.  **AI Import (Admin)**: Import word lists from **PDF (scanned), Excel (.xlsx), CSV**, or Images using integrated Gemini AI.
+5.  **Statistics**: View community insights and popular words at `/stats`.
 
 ## Project Structure
 
