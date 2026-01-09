@@ -204,10 +204,10 @@ export default function ImportPage() {
                 <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-12">
                         <div className="mb-8">
-                            <label className="label text-sm font-semibold">Tệp từ điển (Ảnh)</label>
+                            <label className="label text-sm font-semibold">Tệp từ điển (Ảnh, PDF, Excel, CSV)</label>
                             <VietnameseFileInput
                                 key={`file-${resetKey}`}
-                                accept="image/*"
+                                accept="image/*,application/pdf,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 onChange={handleFileChange}
                                 className="w-full max-w-xs"
                             />

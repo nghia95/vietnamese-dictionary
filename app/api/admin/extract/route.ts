@@ -23,18 +23,11 @@ export async function POST(request: NextRequest) {
 
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const base64Image = buffer.toString('base64');
-
-        // Handle optional guide file
+        const mimeType = file.type;
         const guideFile = formData.get('guideFile') as File | null;
-        let base64Guide = '';
-        if (guideFile) {
-            const guideArrayBuffer = await guideFile.arrayBuffer();
-            base64Guide = Buffer.from(guideArrayBuffer).toString('base64');
-        }
 
-        const prompt = `
-            Analyze this dictionary page image (and optional symbol guide) and extract all the words and their definitions.
+        let promptText = `
+            Analyze this dictionary data and extract all the words and their definitions.
             
             ${guideFile ? 'IMPORTANT: Use the provided Symbol Guide image to interpret abbreviations (e.g. "d" -> "danh từ"), symbols, and update word types/definitions accordingly.' : ''}
 
@@ -43,27 +36,63 @@ export async function POST(request: NextRequest) {
             
             SCHEMA:
             Array<Object {
-                word: string, // The main word being defined
-                type: string, // Part of speech (expanded from symbols if guide provided, e.g. "danh từ")
-                definitions: string[], // List of definitions. Split distinct meanings (e.g. 1, 2, 3 or I, II) into separate strings. Remove the numbering/bullets.
-                synonyms: string[], // List of synonyms if present
-                antonyms: string[] // List of antonyms if present
+                word: string,
+                type: string,
+                definitions: string[],
+                synonyms: string[],
+                antonyms: string[]
             }>
 
             Ignore headers and page numbers.
         `;
 
-        const contentParts: any[] = [
-            prompt,
-            {
-                inlineData: {
-                    data: base64Image,
-                    mimeType: file.type
-                }
-            }
-        ];
+        const contentParts: any[] = [];
+        let isTextBased = false;
 
-        if (guideFile && base64Guide) {
+        // Handle File Types
+        if (mimeType === 'application/pdf') {
+            contentParts.push(promptText);
+            contentParts.push({
+                inlineData: {
+                    data: buffer.toString('base64'),
+                    mimeType: 'application/pdf'
+                }
+            });
+        } else if (
+            mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            mimeType === 'application/vnd.ms-excel' ||
+            mimeType === 'text/csv' ||
+            file.name.endsWith('.csv') ||
+            file.name.endsWith('.xlsx') ||
+            file.name.endsWith('.xls')
+        ) {
+            // Processing Spreadsheets/CSV
+            const XLSX = await import('xlsx');
+            const workbook = XLSX.read(buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            contentParts.push(promptText);
+            contentParts.push(`\n\nDATA TO EXTRACT:\n${JSON.stringify(jsonData, null, 2)}`);
+            isTextBased = true;
+        } else {
+            // Default: Assume Image
+            contentParts.push(promptText);
+            contentParts.push({
+                inlineData: {
+                    data: buffer.toString('base64'),
+                    mimeType: mimeType
+                }
+            });
+        }
+
+        // Handle Guide File (Only if not text based, or if user wants to use it regardless?)
+        // Usually guide file is visual. If we are parsing CSV, we might not need visual guide, but user might upload one.
+        // We will attach it if it exists.
+        if (guideFile) {
+            const guideArrayBuffer = await guideFile.arrayBuffer();
+            const base64Guide = Buffer.from(guideArrayBuffer).toString('base64');
             contentParts.push({
                 inlineData: {
                     data: base64Guide,
@@ -71,6 +100,9 @@ export async function POST(request: NextRequest) {
                 }
             });
         }
+
+        // We need to move the generation call here as prompt construction is dynamic now
+        // Removing the old logic blocks below and keeping the rest.
 
         const result = await model.generateContent(contentParts);
 
