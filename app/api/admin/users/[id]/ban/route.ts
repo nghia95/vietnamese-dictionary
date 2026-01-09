@@ -37,7 +37,7 @@ export async function PATCH(
         }
 
         // bannedUntil can be a ISO string or null
-        await updateUserBan(userId, bannedUntil);
+        await updateUserBan(userId, bannedUntil, session.user.id ? parseInt(session.user.id) : undefined);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Update ban error:', error);

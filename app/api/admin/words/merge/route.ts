@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createClient } from '@libsql/client';
-import { getWordById } from '@/lib/db';
+import { getWordById, logActivity } from '@/lib/db';
 
 const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
 const authToken = process.env.TURSO_AUTH_TOKEN;
@@ -97,6 +97,13 @@ export async function POST(req: Request) {
 
         // Execute as a single batch transaction
         await client.batch(statements, 'write');
+
+        if (session.user.id) {
+            const actorId = parseInt(session.user.id);
+            if (!isNaN(actorId)) {
+                await logActivity(actorId, 'MERGE_WORDS', `Đã gộp ${secondaryWords.length} từ vào "${primaryWord.word}" (ID: ${primaryWord.id}). Các ID đã gộp: ${secondaryIds.join(', ')}`);
+            }
+        }
 
         return NextResponse.json({ success: true, message: `Merged ${secondaryWords.length} words into "${primaryWord.word}"` });
 

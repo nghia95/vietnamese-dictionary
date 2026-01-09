@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'New name must be different from old name' }, { status: 400 });
         }
 
-        const rowsAffected = await updateSourceName(oldName, newName);
+        const rowsAffected = await updateSourceName(oldName, newName, user.id);
 
         return NextResponse.json({
             success: true,

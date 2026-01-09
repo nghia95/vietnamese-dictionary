@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createClient } from '@libsql/client';
+import { logActivity } from '@/lib/db';
 
 const url = process.env.TURSO_DATABASE_URL || 'file:dictionary.db';
 const authToken = process.env.TURSO_AUTH_TOKEN;
@@ -44,6 +45,13 @@ export async function POST(req: Request) {
             sql: `DELETE FROM words WHERE id IN (${placeholders})`,
             args: [...wordIds]
         });
+
+        if (session.user.id) {
+            const userId = parseInt(session.user.id);
+            if (!isNaN(userId)) {
+                await logActivity(userId, 'DELETE_WORDS', `Đã xóa ${wordIds.length} từ. ID: ${wordIds.join(', ')}`);
+            }
+        }
 
         return NextResponse.json({ success: true, message: `Đã xóa thành công ${wordIds.length} từ` });
 

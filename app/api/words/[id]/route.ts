@@ -71,7 +71,8 @@ export async function PUT(
             definitions,
             etymologies || [],
             synonyms || [],
-            antonyms || []
+            antonyms || [],
+            session?.user?.id ? parseInt(session.user.id) : undefined
         );
 
         if (success) {

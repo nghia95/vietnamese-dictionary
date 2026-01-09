@@ -49,6 +49,7 @@ export default function Header() {
     const displayName = user?.name || session?.user?.name;
     const displayAvatar = user?.avatar;
     const isAdminOrMod = session?.user?.role === 'admin' || session?.user?.role === 'moderator';
+    const isAdmin = session?.user?.role === 'admin';
 
     return (
         <header className={styles.header}>
@@ -188,6 +189,15 @@ export default function Header() {
                                                 >
                                                     📚 Tài liệu tham khảo
                                                 </Link>
+                                                {isAdmin && (
+                                                    <Link
+                                                        href="/admin/activity"
+                                                        className={styles.dropdownItem}
+                                                        onClick={() => setIsDropdownOpen(false)}
+                                                    >
+                                                        📜 Nhật ký hoạt động
+                                                    </Link>
+                                                )}
                                             </>
                                         )}
 

@@ -42,3 +42,24 @@ export interface WordInput {
   synonyms: string[];
   antonyms: string[];
 }
+
+export interface Feedback {
+  id: number;
+  word_id: number | null;
+  word_text: string | null;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  content: string;
+  status: string;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  user_id: number;
+  user_name?: string;
+  action: string;
+  details: string | null;
+  created_at: string;
+}

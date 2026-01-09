@@ -159,6 +159,18 @@ export async function initializeDatabase() {
     )
   `);
 
+  // Create activity_logs table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_word_id ON comments(word_id)`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id)`);
 
@@ -445,6 +457,10 @@ export async function addWordWithDefinitions(
 
   const wordId = Number(result.lastInsertRowid);
 
+  if (userId) {
+    await logActivity(userId, 'CREATE_WORD', `Thêm từ: ${word} (ID: ${wordId})`);
+  }
+
   for (let i = 0; i < definitions.length; i++) {
     await client.execute({
       sql: 'INSERT INTO definitions (word_id, definition, source, type, "order") VALUES (?, ?, ?, ?, ?)',
@@ -552,7 +568,8 @@ export async function updateWord(
   definitions: { definition: string; source: string; type?: string }[],
   etymologies: string[],
   synonyms: string[],
-  antonyms: string[]
+  antonyms: string[],
+  actorId?: number // Optional for logging
 ): Promise<boolean> {
   const titleCaseWord = toTitleCase(word);
   const sortKey = getVietnameseSortKey(titleCaseWord);
@@ -593,6 +610,10 @@ export async function updateWord(
       sql: "INSERT INTO related_words (word_id, word, type) VALUES (?, ?, 'antonym')",
       args: [id, antonym]
     });
+  }
+
+  if (actorId) {
+    await logActivity(actorId, 'UPDATE_WORD', `Cập nhật từ: ${word} (ID: ${id})`);
   }
 
   return true;
@@ -655,25 +676,45 @@ export async function getAllUsers() {
   }));
 }
 
-export async function updateUserRole(id: number, role: string) {
-  return await client.execute({
+export async function updateUserRole(id: number, role: string, actorId?: number) {
+  const result = await client.execute({
     sql: 'UPDATE users SET role = ? WHERE id = ?',
     args: [role, id]
   });
+
+  if (actorId) {
+    await logActivity(actorId, 'UPDATE_USER_ROLE', `Đổi quyền người dùng ${id} thành ${role}`);
+  }
+
+  return result;
 }
 
-export async function updateUserBan(id: number, bannedUntil: string | null) {
-  return await client.execute({
+export async function updateUserBan(id: number, bannedUntil: string | null, actorId?: number) {
+  const result = await client.execute({
     sql: 'UPDATE users SET banned_until = ? WHERE id = ?',
     args: [bannedUntil, id]
   });
+
+  if (actorId) {
+    const action = bannedUntil ? 'BAN_USER' : 'UNBAN_USER';
+    const details = bannedUntil ? `Cấm người dùng ${id} đến ${bannedUntil}` : `Bỏ cấm người dùng ${id}`;
+    await logActivity(actorId, action, details);
+  }
+
+  return result;
 }
 
-export async function deleteUser(id: number) {
-  return await client.execute({
+export async function deleteUser(id: number, actorId?: number) {
+  const result = await client.execute({
     sql: 'DELETE FROM users WHERE id = ?',
     args: [id]
   });
+
+  if (actorId) {
+    await logActivity(actorId, 'DELETE_USER', `Xóa người dùng ${id}`);
+  }
+
+  return result;
 }
 
 export async function getDistinctSources(): Promise<string[]> {
@@ -681,11 +722,16 @@ export async function getDistinctSources(): Promise<string[]> {
   return result.rows.map(row => row.source as string);
 }
 
-export async function updateSourceName(oldName: string, newName: string): Promise<number> {
+export async function updateSourceName(oldName: string, newName: string, actorId?: number): Promise<number> {
   const result = await client.execute({
     sql: 'UPDATE definitions SET source = ? WHERE source = ?',
     args: [newName, oldName]
   });
+
+  if (actorId && result.rowsAffected > 0) {
+    await logActivity(actorId, 'UPDATE_SOURCE', `Đổi tên nguồn '${oldName}' thành '${newName}'`);
+  }
+
   return result.rowsAffected;
 }
 
@@ -851,6 +897,8 @@ export async function updateSetting(key: string, value: string, userId: number):
     `,
     args: [key, value, userId]
   });
+
+  await logActivity(userId, 'UPDATE_SETTING', `Cập nhật cài đặt ${key} thành '${value}'`);
 }
 
 export async function getAllSettings(): Promise<Record<string, string>> {
@@ -861,6 +909,43 @@ export async function getAllSettings(): Promise<Record<string, string>> {
   }
   return settings;
 }
+
+// --- Activity Logging ---
+
+export async function logActivity(userId: number, action: string, details: string | null = null) {
+  try {
+    await client.execute({
+      sql: 'INSERT INTO activity_logs (user_id, action, details) VALUES (?, ?, ?)',
+      args: [userId, action, details]
+    });
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+    // Don't throw, logging failure shouldn't block the action
+  }
+}
+
+export async function getRecentActivity(limit: number = 50) {
+  const result = await client.execute({
+    sql: `
+      SELECT a.*, u.name as user_name 
+      FROM activity_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      ORDER BY a.created_at DESC
+      LIMIT ?
+    `,
+    args: [limit]
+  });
+
+  return result.rows.map(row => ({
+    id: row.id as number,
+    user_id: row.user_id as number,
+    user_name: row.user_name as string,
+    action: row.action as string,
+    details: row.details as string | null,
+    created_at: row.created_at as string
+  }));
+}
+
 
 // Get word suggestions for autocomplete
 export async function getWordSuggestions(query: string, limit: number = 10): Promise<string[]> {
