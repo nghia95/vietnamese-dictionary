@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         }
 
         const user = await getUserByEmail(userEmail);
-        if (!user || user.role !== 'admin') {
+        if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
